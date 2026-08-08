@@ -6,7 +6,7 @@ Ensemble de três especialistas para análise hídrica de precisão cirúrgica:
   1. Especialista hidrológico  (Gemini 2.5 Pro, por padrão) → SABESP + HydroLSTM
   2. Especialista meteorológico (GPT, por padrão)            → OpenWeather × reservatórios
   3. Cross-validation                                       → mede convergência/divergência
-  4. Sintetizador local         (Mistral 7B via LM Studio)  → relatório final privado
+  4. Sintetizador local         (LLM via LM Studio)         → relatório final privado
 
 Quanto menor o delta entre os riscos estimados, maior a confiança do relatório.
 Quando os modelos divergem, o sintetizador recebe a divergência explicitamente
@@ -445,7 +445,7 @@ class OrquestradorLLM:
 
     @classmethod
     def from_config(cls, *, strict_schema: bool = True) -> "OrquestradorLLM":
-        """Constroi o ensemble padrao (Gemini hidro + GPT meteo + Mistral local)
+        """Constroi o ensemble padrao (Gemini hidro + GPT meteo + LLM local)
         lendo `config_apis.json` e `.env` com validacao de schema e fallbacks.
 
         Args:

@@ -7,7 +7,7 @@ Pipeline:
    (fallback: simulação se o modelo ainda não estiver treinado)
 3. Carregar contexto científico do TCC a partir de um arquivo .md
 4. Coletar previsão meteorológica do OpenWeather (enriquecimento)
-5. Ensemble: Gemini (hidrológico) + GPT (meteorológico) em paralelo → cross-validation → Mistral 7B (síntese)
+5. Ensemble: Gemini (hidrológico) + GPT (meteorológico) em paralelo → validação determinística → LLM local (síntese)
 6. Receber relatório técnico estruturado sobre risco hídrico
 
 Para treinar o modelo:

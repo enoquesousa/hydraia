@@ -74,6 +74,11 @@ python scripts/avaliar_modelo.py --output artifacts/model_evaluation.local.json
 Copie `.env.example` para `.env`, configure as chaves e inicie o LM Studio. Valide antes de gastar chamadas:
 
 ```bash
+lms load qwen/qwen3.5-35b-a3b --gpu 0.40 --context-length 16384 --parallel 1 --identifier hydraia-synth --no-speculative-draft-mtp
+lms server start --port 1234
+```
+
+```bash
 python -m src.cli validate --strict --sondar-modelos
 python -m src.cli run --economico
 ```

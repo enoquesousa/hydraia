@@ -20,7 +20,7 @@ flowchart LR
       G["Gemini: hidrologia"]
       O["GPT: meteorologia"]
       V["Validação determinística"]
-      M["Mistral local: síntese"]
+      M["Qwen3.5 local: síntese"]
     end
     subgraph Saída
       R["Markdown"]

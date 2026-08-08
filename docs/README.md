@@ -6,9 +6,10 @@
 2. [Metodologia e matemática](METHODOLOGY.md)
 3. [Data Card](DATA_CARD.md)
 4. [Model Card](MODEL_CARD.md)
-5. [Reprodutibilidade](REPRODUCIBILITY.md)
-6. [Errata científica](ERRATA.md)
-7. [Escopo da publicação](PUBLICATION_SCOPE.md)
+5. [Modelo local e GPU](LOCAL_MODEL.md)
+6. [Reprodutibilidade](REPRODUCIBILITY.md)
+7. [Errata científica](ERRATA.md)
+8. [Escopo da publicação](PUBLICATION_SCOPE.md)
 
 `Crises_Hidricas_SP.md` é um corpus de contexto injetado nos prompts do sintetizador, não uma fonte de verdade operacional. `DOCUMENTACAO_TCC.md` descreve uma versão exploratória anterior e não integra o escopo público curado.
 

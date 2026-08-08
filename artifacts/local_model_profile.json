@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "profile_date": "2026-08-08",
+  "status": "post-delivery deployment profile",
+  "model": {
+    "catalog_id": "qwen/qwen3.5-35b-a3b",
+    "api_identifier": "hydraia-synth",
+    "quantization": "Q4_K_M",
+    "gguf_bytes": 21169116992,
+    "gguf_sha256": "f25d609171b8f80950a60f38696597f74025de4070682d2fb1eeffe306ca7d5d",
+    "vision_projector_bytes": 902822016,
+    "vision_projector_sha256": "20a243da4603e66761c3de4d9e886f8a35b3d17f62ec276a8830325317092d6c",
+    "license": "Apache-2.0"
+  },
+  "host": {
+    "gpu": "NVIDIA GeForce RTX 3060 12 GB",
+    "cpu": "Intel Core i5-13400F",
+    "ram_gib": 47.84,
+    "nvidia_driver": "610.88",
+    "lm_studio": "1.0.6+5",
+    "runtime": "llama.cpp-win-x86_64-nvidia-cuda12-avx2@2.27.1"
+  },
+  "load_profile": {
+    "gpu_offload_ratio": 0.4,
+    "context_tokens": 16384,
+    "parallel_generations": 1,
+    "speculative_decoding": false,
+    "reasoning": "off"
+  },
+  "smoke_test": {
+    "input_tokens": 94,
+    "output_tokens": 77,
+    "reasoning_tokens": 0,
+    "tokens_per_second": 39.7943,
+    "time_to_first_token_seconds": 1.0162,
+    "gpu_utilization_peak_pct": 100,
+    "system_vram_peak_mib": 11955,
+    "gpu_power_peak_w": 78.2,
+    "gpu_temperature_peak_c": 45
+  },
+  "notes": [
+    "Medição operacional única; não é benchmark científico.",
+    "O artigo entregue usou Mistral 7B; este perfil foi criado após a entrega.",
+    "Os pesos permanecem fora do Git e devem ser obtidos do catálogo do LM Studio."
+  ]
+}

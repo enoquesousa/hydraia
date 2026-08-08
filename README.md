@@ -26,7 +26,7 @@ flowchart TB
     H["Especialista hidrológico<br/>Gemini"]
     M["Especialista meteorológico<br/>GPT"]
     CV["Validação determinística<br/>risco conservador + escore de concordância"]
-    S["Síntese local<br/>Mistral 7B via LM Studio"]
+    S["Síntese local<br/>Qwen3.5-35B-A3B via LM Studio"]
     OUT["Relatório Markdown + metadados JSON + SQLite"]
 
     SABESP --> ETL --> LSTM
@@ -63,7 +63,7 @@ python -m src.cli validate --strict --sondar-modelos
 python -m src.cli run
 ```
 
-O modo completo requer as chaves descritas em `.env.example`, os artefatos treinados e um Mistral 7B disponível no LM Studio em `http://localhost:1234`.
+O modo completo requer as chaves descritas em `.env.example`, os artefatos treinados e um LLM de chat disponível no LM Studio em `http://localhost:1234`. O perfil recomendado para a máquina de referência está em [Modelo local e GPU](docs/LOCAL_MODEL.md).
 
 ## Reproduzir a pesquisa
 
@@ -99,6 +99,7 @@ A suíte cobre coleta e schemas, cache atômico, circuit breaker, orçamento, CL
 - [Apresentação em PDF](presentation/HydraIA_Apresentacao.pdf)
 - [Arquitetura de software](docs/ARCHITECTURE.md)
 - [Metodologia e matemática](docs/METHODOLOGY.md)
+- [Modelo local e GPU](docs/LOCAL_MODEL.md)
 - [Errata e limitações](docs/ERRATA.md)
 - [Escopo da publicação](docs/PUBLICATION_SCOPE.md)
 - [Como citar](CITATION.cff)

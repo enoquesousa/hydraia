@@ -32,7 +32,7 @@ Desenvolver um pipeline que, a partir dos dados reais da API SABESP, produza um 
 2. **Prever com ML**: Usar um LSTM treinado em 26 anos de histórico para projetar o volume dos reservatórios nos próximos 7 dias.
 3. **Cruzar com meteorologia**: Integrar previsão do OpenWeather para avaliar o impacto da chuva esperada nos reservatórios.
 4. **Validação cruzada entre LLMs**: Dois especialistas independentes (Gemini e GPT) analisam perspectivas diferentes do mesmo cenário; divergências são sinalizadas ao modelo de síntese.
-5. **Síntese local e privada**: O Mistral 7B (rodando na GPU local) produz o relatório final sem expor os dados brutos à nuvem.
+5. **Síntese local e privada**: O Qwen3.5-35B-A3B (com offload na GPU local) produz o relatório final sem expor o corpus de contexto à nuvem.
 
 ---
 
@@ -58,12 +58,12 @@ Implementada em `src/core/orquestrador.py`:
 
 **Fase 2 — Cross-validation**:
 - Delta ≤ 1 ponto → CONVERGÊNCIA → confiança bonificada em 15%.
-- Delta > 1 ponto → DIVERGÊNCIA → confiança penalizada em 10% por ponto de delta. Mistral recebe a divergência explicitamente.
+- Delta > 1 ponto → DIVERGÊNCIA → confiança penalizada em 10% por ponto de delta. O sintetizador local recebe a divergência explicitamente.
 - Apenas 1 modelo → PARCIAL → confiança penalizada em 30%.
 - Risco consolidado: sempre o maior entre os dois (princípio conservador).
 
 **Fase 3 — Síntese local**:
-- Mistral 7B Instruct v0.3 (LM Studio, porta 1234, GPU local) sintetiza as análises dos dois especialistas em relatório técnico estruturado em PT-BR.
+- Qwen3.5-35B-A3B Q4_K_M (LM Studio, porta 1234, CUDA + RAM) sintetiza as análises dos dois especialistas em relatório técnico estruturado em PT-BR.
 
 ### Camada 4 — Saída
 - Relatório impresso no console via logging.
@@ -83,9 +83,11 @@ Implementada em `src/core/orquestrador.py`:
 - **Lookback**: 90 dias | **Horizonte**: 30 dias
 - **Execução**: GPU RTX 3060 (CUDA 11.8)
 
-### Mistral 7B Instruct v0.3 (local)
+### Qwen3.5-35B-A3B Q4_K_M (local)
+- **Status**: perfil de implantação pós-entrega; o artigo original usou Mistral 7B Instruct v0.3
 - **Função**: Síntese final do relatório técnico
-- **Execução**: GPU RTX 3060 via LM Studio (API OpenAI-compatible, porta 1234)
+- **Arquitetura**: Mixture-of-Experts, 35B parâmetros totais e 3B ativos por token
+- **Execução**: RTX 3060 via runtime CUDA do LM Studio, com camadas remanescentes em RAM
 - **Vantagem**: Privacidade — dados brutos não saem da máquina local; custo zero por token
 
 ### Gemini 2.5 Pro (nuvem)
@@ -108,13 +110,13 @@ Implementada em `src/core/orquestrador.py`:
 | `src/api/sabesp.py` | Coletor SABESP — API v4 oficial |
 | `src/api/openweather.py` | Coletor OpenWeather One Call 3.0 |
 | `src/core/integracao.py` | Orquestrador do pipeline (coleta → ML → ensemble → saída) |
-| `src/core/orquestrador.py` | Ensemble Gemini + GPT → cross-validation → Mistral |
+| `src/core/orquestrador.py` | Ensemble Gemini + GPT → validação determinística → síntese local |
 | `src/data/inferencia_ts.py` | Inferência HydroLSTM |
 | `src/data/preparar_dataset.py` | Prepara séries temporais a partir dos JSONs históricos |
 | `src/data/treinar_modelo_ts.py` | Treina o HydroLSTM |
-| `src/models/hydraia_llm.py` | Cliente Mistral 7B via LM Studio |
+| `src/models/hydraia_llm.py` | Cliente model-agnostic para o servidor OpenAI-compatible do LM Studio |
 | `src/utils/env_loader.py` | Carrega e valida variáveis do `.env` |
-| `scripts/historico_analisador.py` | Análise de risco histórico com Mistral (contexto adicional) |
+| `scripts/historico_analisador.py` | Análise histórica exploratória com o LLM local |
 | `scripts/processar_historico_mistral.py` | Consolida histórico SABESP em base de conhecimento |
 
 ---
@@ -143,6 +145,6 @@ Implementada em `src/core/orquestrador.py`:
 
 1. **Dados reais obrigatórios**: O pipeline recusa execução se a API SABESP não responder — não usa simulações nem dados fictícios.
 2. **Validação cruzada explícita**: A divergência entre os LLMs especialistas é comunicada ao modelo de síntese e refletida em um escore heurístico de concordância do relatório.
-3. **Síntese local e privada**: O relatório final é gerado pelo Mistral 7B rodando na GPU local — os dados brutos não saem da máquina.
+3. **Síntese local e privada**: O relatório final é gerado pelo Qwen3.5 rodando localmente com aceleração CUDA — o corpus de síntese não sai da máquina.
 4. **Contexto histórico profundo**: O HydroLSTM foi treinado em 26 anos de dados diários, permitindo capturar sazonalidades e padrões de longo prazo.
 5. **Resiliência**: Cache de 1h para SABESP e OpenWeather; retry com backoff para os LLMs em nuvem; OpenWeather não bloqueia o pipeline se indisponível.

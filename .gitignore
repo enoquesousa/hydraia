@@ -28,7 +28,7 @@ dist/
 
 # Dados, modelos e saídas regeneráveis
 storage/
-models/
+/models/
 *.pt
 *.pth
 *.ckpt

@@ -63,7 +63,7 @@ def verificar_lm_studio():
                 return True
             else:
                 print("   ⚠️  LM Studio rodando mas nenhum modelo carregado")
-                print("      Carregue o Mistral 7B Instruct no LM Studio")
+                print("      Carregue o Qwen3.5-35B-A3B no LM Studio")
                 return False
         else:
             print(f"   ❌ LM Studio respondeu com código {response.status_code}")
@@ -73,7 +73,7 @@ def verificar_lm_studio():
         print("   ❌ LM Studio não está rodando")
         print("\n   Como resolver:")
         print("   1. Abra o LM Studio")
-        print("   2. Carregue o modelo Mistral 7B Instruct")
+        print("   2. Carregue o modelo Qwen3.5-35B-A3B")
         print("   3. Vá em 'Developer' → 'Local Server'")
         print("   4. Clique em 'Start Server' (porta 1234)")
         return False
@@ -186,7 +186,7 @@ def main():
 
         if not resultados["lm_studio"]:
             print("\n💡 DICA: O problema mais comum é o LM Studio não estar rodando.")
-            print("   Abra o LM Studio, carregue o Mistral 7B e ative o servidor local.")
+            print("   Abra o LM Studio, carregue o Qwen3.5-35B-A3B e ative o servidor local.")
 
         return 1
 

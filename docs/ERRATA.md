@@ -24,7 +24,7 @@ As afirmações de redução superior a 90% e de economia equivalente não são 
 
 ## 5. Quantidade de testes
 
-O artigo registra 265 casos e um subconjunto de 81; o README anterior registrava 58. A árvore auditada coletou 283 casos antes das correções de publicação e 284 na versão pública preparada. Quantidade de testes é evidência de cobertura de regras, não substituto para cobertura de código nem validação científica externa.
+O artigo registra 265 casos e um subconjunto de 81; o README anterior registrava 58. A árvore auditada coletou 283 casos antes das correções de publicação e 289 após a integração local preparada. Quantidade de testes é evidência de cobertura de regras, não substituto para cobertura de código nem validação científica externa.
 
 ## 6. Fontes realmente ativas
 
@@ -45,3 +45,7 @@ Quantis e probabilidades de limiar são calculados ao somar resíduos empíricos
 ## 10. Validade externa
 
 Não houve comparação completa e versionada com ARIMA/SARIMA, modelos físico-hidrológicos ou Transformers, nem painel sistemático de especialistas para os relatórios. O trabalho demonstra viabilidade de protótipo e engenharia de integração; superioridade científica sobre alternativas permanece hipótese aberta.
+
+## 11. Modelo local após a entrega
+
+O artigo entregue registra Mistral 7B Instruct v0.3 como sintetizador. Para a publicação do repositório, o perfil operacional local foi atualizado para Qwen3.5-35B-A3B Q4_K_M, mantendo a mesma API OpenAI-compatible do LM Studio. Essa troca é uma melhoria de implantação pós-entrega e não foi usada para produzir as análises ou métricas históricas do TCC; uma comparação controlada entre sintetizadores ainda não foi realizada.
