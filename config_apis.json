@@ -1,0 +1,44 @@
+{
+  "_comment": "Configuracoes estruturais do HydraIA. Chaves de API sao carregadas do arquivo .env. Listas de fallback sao usadas quando a conta nao tem acesso ao modelo principal.",
+
+  "openweather": {
+    "base_url": "https://api.openweathermap.org/data/3.0",
+    "timeout": 10,
+    "retry_attempts": 3,
+    "breaker_threshold": 4,
+    "breaker_recovery_s": 120
+  },
+
+  "gemini_ultra": {
+    "model": "gemini-2.5-pro",
+    "fallback_models": ["gemini-1.5-pro", "gemini-1.5-flash"],
+    "timeout": 30,
+    "max_tokens": 2048,
+    "temperature": 0.3,
+    "max_prompt_chars": 60000
+  },
+
+  "openai_gpt5": {
+    "model": "gpt-5.1-chat-latest",
+    "fallback_models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+    "timeout": 30,
+    "max_tokens": 2048,
+    "temperature": 0.3,
+    "max_prompt_chars": 60000
+  },
+
+  "agent_config": {
+    "localizacao": {
+      "cidade": "Sao Paulo",
+      "estado": "SP",
+      "latitude": -23.5505,
+      "longitude": -46.6333
+    },
+    "previsao_dias": 7,
+    "threshold_discrepancia_mm": 10.0,
+    "threshold_alerta_chuva_mm": 50.0,
+    "threshold_risco_hidrico_dias_seca": 15,
+    "min_fontes_acordo": 3,
+    "intervalo_coleta_horas": 6
+  }
+}

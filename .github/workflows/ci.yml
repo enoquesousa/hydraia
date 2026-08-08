@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Critical static checks
+        run: ruff check src tests scripts
+
+      - name: Offline test suite
+        env:
+          HYDRAIA_SEED: "42"
+        run: python -m pytest -q
+
+      - name: Offline CLI smoke test
+        run: python -m src.cli run --modo-simulado --skip-llm --skip-preflight --horizonte-dias 3

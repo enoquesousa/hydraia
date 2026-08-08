@@ -1,0 +1,16 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+exclude = [
+  "docs/entregas",
+  "storage",
+]
+
+[tool.ruff.lint]
+# O projeto historico ainda possui divida de estilo. A barreira de CI cobre
+# erros sintaticos, nomes indefinidos e construcoes comprovadamente invalidas.
+select = ["E9", "F63", "F7", "F82"]

@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "Se você utilizar este trabalho como referência, cite o artigo e este repositório."
+title: "HydraIA: sistema híbrido de aprendizado profundo e ensemble de modelos de linguagem para análise de risco hídrico na Macrometrópole Paulista"
+type: software
+version: 1.0.0
+date-released: 2026-08-08
+authors:
+  - family-names: "Sousa"
+    given-names: "José Enoque Fernandes de"
+  - family-names: "Approbato"
+    given-names: "Clever"
+    affiliation: "Centro Universitário das Faculdades Metropolitanas Unidas"
+abstract: "Protótipo acadêmico que integra dados da SABESP, uma HydroLSTM e um ensemble de LLMs para análise de risco hídrico."
+keywords:
+  - hydrology
+  - time series
+  - LSTM
+  - large language models
+  - water risk

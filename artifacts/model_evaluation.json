@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "evaluated_at_utc": "2026-08-08T20:00:00+00:00",
+  "artifacts": {
+    "dataset_sha256": "56e01c88fd1e7f4145cb3b72b02afd1309e5bba71b56a702a6f87a50f02ec771",
+    "scaler_y_sha256": "45fd0e42e6cdbf7d495759846554c5c890bbfd3a1561c0658097bee33f5fdb27",
+    "checkpoint_sha256": "5a690ff80370454801c2e34dee721ab290589f8cac91b394125f9578688bd906",
+    "metadata_sha256": "b50dedf96950b49fb96f85afaca86192d9d6e22bd0d8620769dd390ae19fb187"
+  },
+  "runtime": {
+    "python": "3.12.13",
+    "torch": "2.7.1+cpu",
+    "numpy": "2.2.6",
+    "scikit_learn": "1.8.0",
+    "device": "cpu"
+  },
+  "results": {
+    "validation": {
+      "janelas": 246,
+      "mae_normalizado": 0.354497,
+      "mae_pp": 7.037661,
+      "rmse_pp": 8.79697
+    },
+    "test": {
+      "janelas": 712,
+      "mae_normalizado": 0.343239,
+      "mae_pp": 6.192804,
+      "rmse_pp": 7.571771
+    }
+  },
+  "paper_reported": {
+    "validation_mae": 0.35,
+    "validation_unit_claimed": "pontos percentuais",
+    "test_mae_pp": 6.05,
+    "test_rmse_pp": 7.53
+  },
+  "notes": [
+    "O valor historico de validacao foi calculado no espaco padronizado e rotulado como pontos percentuais.",
+    "O arquivo hydro_lstm_meta.json e anterior ao checkpoint e ao dataset avaliados.",
+    "Os resultados deste arquivo descrevem somente os hashes informados."
+  ]
+}

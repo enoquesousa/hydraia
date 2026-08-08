@@ -1,0 +1,15 @@
+# HydraIA — ambiente de execução e reprodução (Python 3.12)
+
+# HTTP e provedores LLM
+requests>=2.32,<3.0
+google-genai>=1.7,<2.0
+openai>=2.0,<3.0
+
+# Ambiente científico compatível com os artefatos auditados
+torch==2.7.1
+numpy==2.2.6
+pandas==2.3.3
+scikit-learn==1.8.0
+
+# Para CUDA 11.8, substitua apenas o pacote torch conforme a documentação
+# oficial do PyTorch para a sua plataforma.

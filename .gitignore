@@ -1,0 +1,70 @@
+# Credenciais e configuração local
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Ambientes e caches Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Build e pacotes
+build/
+dist/
+*.egg
+
+# Dados, modelos e saídas regeneráveis
+storage/
+models/
+*.pt
+*.pth
+*.ckpt
+*.gguf
+*.npz
+*.npy
+*.pkl
+*.joblib
+*.sqlite
+*.sqlite3
+*.db
+
+# Materiais de entrega não destinados ao repositório público
+docs/entregas/
+docs/DOCUMENTACAO_TCC.md
+.claude/
+
+# Vídeo, áudio, temporários e logs
+*.mp4
+*.mov
+*.avi
+*.wav
+*.tmp
+*.temp
+*.log
+tmp/
+temp/
+logs/
+
+# Editores e sistema operacional
+.idea/
+.vscode/
+*.code-workspace
+.DS_Store
+Thumbs.db
+~$*
+*.swp
+*.swo
+*~
