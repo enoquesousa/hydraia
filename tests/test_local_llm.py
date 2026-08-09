@@ -57,7 +57,8 @@ def test_chamada_nativa_lm_studio(monkeypatch):
     resposta.status_code = 200
     resposta.raise_for_status.return_value = None
     resposta.json.return_value = {
-        "output": [{"type": "message", "content": "  relatório técnico  "}]
+        "output": [{"type": "message", "content": "  relatório técnico  "}],
+        "stats": {"total_output_tokens": 20},
     }
     post = Mock(return_value=resposta)
     monkeypatch.setattr(hydraia_llm.requests, "post", post)
@@ -70,6 +71,20 @@ def test_chamada_nativa_lm_studio(monkeypatch):
     assert chamada.kwargs["json"]["model"] == "hydraia-synth"
     assert chamada.kwargs["json"]["max_output_tokens"] == 200
     assert chamada.kwargs["json"]["reasoning"] == "off"
+
+
+def test_descarta_resposta_truncada(monkeypatch):
+    monkeypatch.setenv("LM_STUDIO_MODEL", "hydraia-synth")
+    resposta = Mock(status_code=200)
+    resposta.raise_for_status.return_value = None
+    resposta.json.return_value = {
+        "output": [{"type": "message", "content": "relatório incompleto"}],
+        "stats": {"total_output_tokens": 100},
+    }
+    monkeypatch.setattr(hydraia_llm.requests, "post", Mock(return_value=resposta))
+
+    with pytest.raises(RuntimeError, match="relatorio truncado"):
+        hydraia_llm.ask_local_llm("sintetize", max_tokens=100)
 
 
 def test_fallback_para_endpoint_openai_legado(monkeypatch):

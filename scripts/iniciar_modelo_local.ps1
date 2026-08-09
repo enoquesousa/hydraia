@@ -19,7 +19,12 @@ if (-not (Test-Path -LiteralPath $lms)) {
     throw "LM Studio CLI nao encontrado. Instale e abra o LM Studio ao menos uma vez."
 }
 
+# `lms ps` usa stderr para informar que nao ha modelos carregados. Isso e um
+# estado valido de inicializacao, nao uma falha do script.
+$previousErrorAction = $ErrorActionPreference
+$ErrorActionPreference = "SilentlyContinue"
 $loaded = (& $lms ps 2>&1 | Out-String)
+$ErrorActionPreference = $previousErrorAction
 if ($loaded -notmatch "hydraia-synth") {
     & $lms load qwen/qwen3.5-35b-a3b `
         --gpu $GpuOffload `

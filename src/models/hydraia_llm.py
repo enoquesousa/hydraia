@@ -105,7 +105,7 @@ def _msg_lm_studio_offline() -> str:
 def ask_local_llm(
     prompt: str,
     max_tokens: int = 1024,
-    temperature: float = 0.7,
+    temperature: float = 0.2,
     model: Optional[str] = None,
 ) -> str:
     """Envia um prompt para o LLM local. Detecta o modelo carregado se não for fornecido.
@@ -160,6 +160,12 @@ def ask_local_llm(
 
         response.raise_for_status()
         data = response.json()
+        usados = int((data.get("stats") or {}).get("total_output_tokens") or 0)
+        if usados >= max_tokens:
+            raise RuntimeError(
+                f"LM Studio atingiu o limite de {max_tokens} tokens; "
+                "a resposta foi descartada para evitar relatorio truncado."
+            )
         mensagens = [
             item.get("content", "").strip()
             for item in data.get("output", [])

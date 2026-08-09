@@ -33,6 +33,12 @@ import sys
 from datetime import date
 from pathlib import Path
 
+from src.utils.tls import configurar_certificados_nativos
+
+# Aplicacao executavel: use as CAs confiadas pelo sistema antes de instanciar
+# clientes requests/httpx dos provedores externos.
+configurar_certificados_nativos()
+
 from src.utils.budget import BUDGET
 from src.utils.observabilidade import (
     METRICS,

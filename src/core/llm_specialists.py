@@ -144,6 +144,7 @@ class LLMSpecialist(ABC):
         self.max_response_chars = max_response_chars
         self.max_prompt_chars = max_prompt_chars
         self.nome = nome or self.__class__.__name__
+        self.last_model_used: Optional[str] = None
         self.strict_schema = strict_schema
         self.campos_obrigatorios = set(campos_obrigatorios or [])
         self.breaker = CircuitBreaker(
@@ -283,8 +284,10 @@ class GeminiSpecialist(LLMSpecialist):
             config=types.GenerateContentConfig(
                 temperature=self.temperature,
                 max_output_tokens=self.max_tokens,
+                response_mime_type="application/json",
             ),
         )
+        self.last_model_used = self.model
         return response.text or ""
 
 
@@ -315,18 +318,21 @@ class GPTSpecialist(LLMSpecialist):
         for modelo in candidatos:
             payload: Dict = {
                 "model": modelo,
-                "messages": [{"role": "user", "content": prompt}],
-                "max_completion_tokens": self.max_tokens,
+                "input": prompt,
+                "max_output_tokens": self.max_tokens,
             }
+            if modelo.lower().startswith("gpt-5"):
+                payload["reasoning"] = {"effort": "none"}
             if self._aceita_temperature(modelo):
                 payload["temperature"] = self.temperature
 
             try:
-                response = client.chat.completions.create(**payload)
+                response = client.responses.create(**payload)
                 if modelo != self.model:
                     logger.warning("[%s] Usando fallback '%s' (principal '%s' indisponivel)",
                                    self.nome, modelo, self.model)
-                return response.choices[0].message.content or ""
+                self.last_model_used = modelo
+                return response.output_text or ""
             except BadRequestError as e:
                 msg = str(e).lower()
                 if "temperature" in msg and "temperature" in payload:
@@ -334,8 +340,9 @@ class GPTSpecialist(LLMSpecialist):
                                    self.nome, modelo)
                     payload.pop("temperature", None)
                     try:
-                        response = client.chat.completions.create(**payload)
-                        return response.choices[0].message.content or ""
+                        response = client.responses.create(**payload)
+                        self.last_model_used = modelo
+                        return response.output_text or ""
                     except Exception as e2:
                         ultimo_erro = e2
                         continue

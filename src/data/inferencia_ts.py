@@ -145,12 +145,14 @@ def _carregar_ultimos_dias(lookback: int) -> Optional[np.ndarray]:
     temp_feat = np.stack([sin_doy, cos_doy, month_n], axis=1).astype(np.float32)
     return np.concatenate([janela, temp_feat], axis=1)
 
-def prever(horizonte_dias: int = 30, *, otimizar: bool = True) -> dict:
+def prever(horizonte_dias: int = 30, *, otimizar: bool = False) -> dict:
     """Gera previsão de v_util (%) com intervalos e probabilidades.
 
     Args:
         horizonte_dias: dias a prever.
-        otimizar: se True, tenta usar torch.compile e quantizacao dinamica.
+        otimizar: ativa experimentalmente ``torch.compile`` e quantizacao
+            dinamica. O modo eager e o padrao por ser portatil no Windows e
+            evitar a dependencia de um compilador C++ durante a inferencia.
     """
     if not (MODELS_DIR / "hydro_lstm_melhor.pt").exists():
         raise RuntimeError("❌ Erro Crítico: Modelo HydroLSTM não encontrado. Execute o treinamento com dados reais.")

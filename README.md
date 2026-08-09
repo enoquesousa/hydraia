@@ -100,6 +100,7 @@ A suíte cobre coleta e schemas, cache atômico, circuit breaker, orçamento, CL
 - [Arquitetura de software](docs/ARCHITECTURE.md)
 - [Metodologia e matemática](docs/METHODOLOGY.md)
 - [Modelo local e GPU](docs/LOCAL_MODEL.md)
+- [Validação operacional real](docs/VALIDACAO_REAL.md)
 - [Errata e limitações](docs/ERRATA.md)
 - [Escopo da publicação](docs/PUBLICATION_SCOPE.md)
 - [Como citar](CITATION.cff)

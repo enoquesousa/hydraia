@@ -18,6 +18,7 @@ Para treinar o modelo:
 import json
 import logging
 import time
+import unicodedata
 from datetime import date
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -42,6 +43,12 @@ _CACHE_TTL = 3600  # 1 hora em segundos
 _cache = FileCache(_CACHE_DIR, ttl_s=_CACHE_TTL)
 _cache_sabesp = FileCache(_CACHE_DIR, ttl_s=_CACHE_TTL, validator=validador_sabesp)
 _cache_weather = FileCache(_CACHE_DIR, ttl_s=_CACHE_TTL, validator=validador_openweather)
+
+
+def _slug_sistema(nome: str) -> str:
+    """Converte nomes humanos (ex.: Alto Tietê) para chaves ASCII estáveis."""
+    ascii_nome = unicodedata.normalize("NFKD", nome).encode("ascii", "ignore").decode("ascii")
+    return ascii_nome.lower().replace(" ", "_")
 
 
 # Aliases legados (testes em test_cache.py importam por estes nomes).
@@ -82,8 +89,13 @@ def coletar_dados_sabesp_reais(
         return collector.coletar_simulado()
 
     cache = _cache_sabesp.get("sabesp")
-    if cache:
+    if cache and (allow_snapshot or cache.get("modo") == "real"):
         return cache
+    if cache:
+        logger.info(
+            "[cache] sabesp ignorado: modo=%s nao e permitido em execucao estritamente real.",
+            cache.get("modo", "desconhecido"),
+        )
 
     logger.info("Coletando dados da API SABESP...")
     collector = SabespCollector(auto_save=True)
@@ -182,6 +194,8 @@ def gerar_previsoes_ml(
             # Intervalos e probabilidades (se disponíveis)
             if "p10" in dia_prev:
                 row["volume_cantareira_p10"] = dia_prev["p10"]
+            if "p50" in dia_prev:
+                row["volume_cantareira_p50"] = dia_prev["p50"]
             if "p90" in dia_prev:
                 row["volume_cantareira_p90"] = dia_prev["p90"]
             if "prob_sub_30_pct" in dia_prev:
@@ -192,10 +206,12 @@ def gerar_previsoes_ml(
                 row["prob_cantareira_acima_80_pct"] = dia_prev["prob_acima_80_pct"]
             for sistema, dias in resultado.items():
                 if sistema != "Cantareira" and i < len(dias):
-                    chave = f"volume_{sistema.lower().replace(' ', '_')}_pct"
+                    chave = f"volume_{_slug_sistema(sistema)}_pct"
                     row[chave] = dias[i]["v_util_pct"]
                     if "p10" in dias[i]:
                         row[f"{chave}_p10"] = dias[i]["p10"]
+                    if "p50" in dias[i]:
+                        row[f"{chave}_p50"] = dias[i]["p50"]
                     if "p90" in dias[i]:
                         row[f"{chave}_p90"] = dias[i]["p90"]
                     if "prob_sub_30_pct" in dias[i]:
@@ -313,8 +329,9 @@ def _resumo_prob_previsoes(previsoes: List[Dict[str, float]]) -> Dict[str, float
     # Intervalos do primeiro dia (curto prazo)
     d0 = previsoes[0]
     for k in ("p10", "p50", "p90"):
-        if k in d0:
-            resumo[f"{k}_h1"] = d0[k]
+        campo = f"volume_cantareira_{k}"
+        if campo in d0:
+            resumo[f"{k}_h1"] = float(d0[campo])
 
     return resumo
 
@@ -429,10 +446,14 @@ def executar_pipeline_integrado(
     if dados_sabesp.get("resumo"):
         resumo = dados_sabesp["resumo"]
         estado_atual["macrometropole"] = {
-            "total_sistemas": resumo.get("total_sistemas") or resumo.get("total_sistemas_coletados"),
+            "total_sistemas": resumo.get(
+                "total_sistemas", resumo.get("total_sistemas_coletados")
+            ),
             "volume_medio_pct": resumo.get("volume_medio_percentual"),
             "sistemas_abaixo_50pct": resumo.get("sistemas_abaixo_50pct"),
-            "sistemas_criticos": resumo.get("sistemas_criticos") or resumo.get("sistemas_criticos_abaixo_30pct"),
+            "sistemas_criticos": resumo.get(
+                "sistemas_criticos", resumo.get("sistemas_criticos_abaixo_30pct")
+            ),
         }
 
     # Uma demo sintetica nao deve depender de artefatos historicos locais nem
@@ -525,7 +546,7 @@ def main() -> None:
     )
 
     print("\n" + "=" * 60)
-    print("RELATORIO GERADO PELO ENSEMBLE LLM (Gemini + GPT + Mistral)")
+    print("RELATORIO GERADO PELO ENSEMBLE LLM (Gemini + GPT + LLM local)")
     print("=" * 60 + "\n")
     print(relatorio)
 

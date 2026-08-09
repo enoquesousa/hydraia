@@ -13,14 +13,14 @@
     "model": "gemini-2.5-pro",
     "fallback_models": ["gemini-1.5-pro", "gemini-1.5-flash"],
     "timeout": 30,
-    "max_tokens": 2048,
+    "max_tokens": 4096,
     "temperature": 0.3,
     "max_prompt_chars": 60000
   },
 
   "openai_gpt5": {
-    "model": "gpt-5.1-chat-latest",
-    "fallback_models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+    "model": "gpt-5.6-terra",
+    "fallback_models": ["gpt-5.1", "gpt-4.1", "gpt-4o"],
     "timeout": 30,
     "max_tokens": 2048,
     "temperature": 0.3,

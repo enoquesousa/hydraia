@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Callable, Dict, Optional, Tuple
@@ -44,6 +45,25 @@ from src.utils.observabilidade import METRICS, correlation_id, hash_prompt, vers
 from src.utils.paths import HydraPaths
 
 logger = logging.getLogger(__name__)
+
+_SISTEMAS_LSTM = (
+    ("volume_cantareira_pct", "Cantareira"),
+    ("volume_alto_tiete_pct", "Alto Tietê"),
+    ("volume_guarapiranga_pct", "Guarapiranga"),
+    ("volume_cotia_pct", "Cotia"),
+    ("volume_rio_grande_pct", "Rio Grande"),
+    ("volume_rio_claro_pct", "Rio Claro"),
+)
+
+_NOMES_CANONICOS = {
+    "cantareira": "Cantareira",
+    "alto_tiete": "Alto Tietê",
+    "guarapiranga": "Guarapiranga",
+    "cotia": "Cotia",
+    "rio_grande": "Rio Grande",
+    "rio_claro": "Rio Claro",
+    "sao_lourenco": "São Lourenço",
+}
 
 
 # Aliases para manter compatibilidade com testes existentes que importam por _nome.
@@ -88,27 +108,43 @@ def _formatar_sabesp(estado: Dict) -> str:
 
 
 def _formatar_lstm(previsoes: list) -> str:
+    sistemas = {
+        "volume_cantareira_pct": "Cantareira",
+        "volume_alto_tiete_pct": "Alto Tietê",
+        "volume_guarapiranga_pct": "Guarapiranga",
+        "volume_cotia_pct": "Cotia",
+        "volume_rio_grande_pct": "Rio Grande",
+        "volume_rio_claro_pct": "Rio Claro",
+    }
     linhas = []
     for p in previsoes:
         dia = int(p.get("dia", 0))
-        vol = p.get("volume_cantareira_pct", 0)
-        base = f"  Dia +{dia}: Cantareira {vol:.1f}%"
-        extras = []
-        p10 = p.get("volume_cantareira_p10")
-        p90 = p.get("volume_cantareira_p90")
-        if p10 is not None and p90 is not None:
-            extras.append(f"p10={p10:.1f}% | p90={p90:.1f}%")
-        if "prob_cantareira_sub_30_pct" in p:
-            extras.append(f"P(<30%)={p['prob_cantareira_sub_30_pct']:.1f}%")
-        if "prob_cantareira_acima_80_pct" in p:
-            extras.append(f"P(>80%)={p['prob_cantareira_acima_80_pct']:.1f}%")
-        if extras:
-            base = f"{base} ({' · '.join(extras)})"
-        linhas.append(base)
+        for campo, nome in sistemas.items():
+            if campo not in p:
+                continue
+            prefixo = "volume_cantareira" if nome == "Cantareira" else campo
+            vol = p[campo]
+            extras = [f"pontual={vol:.1f}%"]
+            quantis = [p.get(f"{prefixo}_{q}") for q in ("p10", "p50", "p90")]
+            if all(v is not None for v in quantis):
+                extras.append(
+                    f"p10={quantis[0]:.1f}% | p50={quantis[1]:.1f}% | p90={quantis[2]:.1f}%"
+                )
+            prob_prefixo = "prob_cantareira" if nome == "Cantareira" else f"{campo}_prob"
+            prob30 = p.get(f"{prob_prefixo}_sub_30_pct")
+            prob50 = p.get(f"{prob_prefixo}_sub_50_pct")
+            prob80 = p.get(f"{prob_prefixo}_acima_80_pct")
+            if prob30 is not None:
+                extras.append(f"P(<30%)={prob30:.1f}%")
+            if prob50 is not None:
+                extras.append(f"P(<50%)={prob50:.1f}%")
+            if prob80 is not None:
+                extras.append(f"P(>80%)={prob80:.1f}%")
+            linhas.append(f"  Dia +{dia} | {nome}: " + " | ".join(extras))
     return "\n".join(linhas)
 
 
-def _formatar_weather(weather: Optional[Dict]) -> str:
+def _formatar_weather(weather: Optional[Dict], max_dias: Optional[int] = None) -> str:
     if not weather or not weather.get("previsoes"):
         return "  (dados meteorológicos não disponíveis)"
     linhas = []
@@ -118,7 +154,8 @@ def _formatar_weather(weather: Optional[Dict]) -> str:
             f"  Agora: {current.get('temp')}°C, umidade {current.get('humidity')}%, "
             f"chuva última hora {current.get('rain_1h', 0.0)}mm"
         )
-    for prev in weather["previsoes"]:
+    previsoes = weather["previsoes"][:max_dias] if max_dias else weather["previsoes"]
+    for prev in previsoes:
         data = prev.get("data_hora", "")[:10]
         chuva = prev.get("precipitacao_mm") or 0.0
         temp = prev.get("temperatura_c")
@@ -126,6 +163,168 @@ def _formatar_weather(weather: Optional[Dict]) -> str:
         desc = prev.get("descricao", "")
         linhas.append(f"  {data}: {temp}°C, umidade {umid}%, chuva {chuva:.1f}mm — {desc}")
     return "\n".join(linhas)
+
+
+# ─── Renderizacao deterministica das secoes factuais ────────────────────────
+
+def _numero(valor, casas: int = 2, *, sinal: bool = False, sufixo: str = "") -> str:
+    if valor is None:
+        return "N/D"
+    try:
+        numero = float(valor)
+    except (TypeError, ValueError):
+        return "N/D"
+    formato = f"{{:{'+' if sinal else ''}.{casas}f}}"
+    return f"{formato.format(numero)}{sufixo}"
+
+
+def _estacao(data_referencia: Optional[str]) -> str:
+    try:
+        mes = datetime.fromisoformat(str(data_referencia)[:10]).month
+    except (TypeError, ValueError):
+        mes = datetime.now().month
+    if 7 <= mes <= 9:
+        return "PERÍODO SECO (JAS)"
+    if mes in (12, 1, 2):
+        return "PERÍODO CHUVOSO (DJF)"
+    return "TRANSIÇÃO"
+
+
+def _offset_historico(estado: Dict, sistema: str, offset: int) -> Dict:
+    offsets = (estado.get("prob_hist_futuro") or {}).get(sistema) or {}
+    return offsets.get(offset) or offsets.get(str(offset)) or {}
+
+
+def _secoes_fatuais(
+    estado: Dict,
+    previsoes: list,
+    weather: Optional[Dict],
+) -> str:
+    """Renderiza tabelas 1-5 sem delegar números ou cobertura à LLM."""
+    data_ref = estado.get("data_referencia")
+    macro = estado.get("macrometropole") or {}
+    partes = [
+        "# RELATÓRIO TÉCNICO FINAL: ANÁLISE DE RISCO HÍDRICO - "
+        "MACROMETRÓPOLE DE SÃO PAULO",
+        f"**Sistema:** HydraIA | **Data de referência:** {data_ref or 'N/D'}",
+        "> **Nota metodológica:** probabilidades de evento e confiança do ensemble são "
+        "estimativas empíricas/heurísticas não calibradas. Este relatório é um artefato "
+        "de pesquisa e não deve fundamentar, isoladamente, decisões operacionais.",
+        "### 1) Situação Atual",
+        "| Item | Valor |",
+        "|---|---|",
+        f"| Data de referência | {data_ref or 'N/D'} |",
+        f"| Estação climatológica | {_estacao(data_ref)} |",
+        f"| Cantareira (%) | {_numero(estado.get('volume_cantareira_pct'), sufixo='%')} |",
+        f"| Macrometrópole média (%) | {_numero(macro.get('volume_medio_pct'), sufixo='%')} |",
+        f"| Sistemas críticos (<30%) | {macro.get('sistemas_criticos', 'N/D')} |",
+        "",
+        "### 2) Situação por Sistema e Deltas",
+        "| Sistema | Volume (%) | Delta vs p50 mês | Chuva (mm) | "
+        "Vazão natural (m³/s) | Anomalia z-score |",
+        "|---|---:|---:|---:|---:|---:|",
+    ]
+
+    anomalias = estado.get("anomalias_historicas") or {}
+    for slug, info in (estado.get("sistemas") or {}).items():
+        nome = _NOMES_CANONICOS.get(
+            slug, str(info.get("sistema") or slug).removeprefix("Sistema ")
+        )
+        volume = info.get("volume_percentual")
+        p50_mes = _offset_historico(estado, nome, 1).get("p50")
+        delta = None if volume is None or p50_mes is None else float(volume) - float(p50_mes)
+        zscore = (anomalias.get(nome) or {}).get("zscore")
+        partes.append(
+            f"| {nome} | {_numero(volume, sufixo='%')} | "
+            f"{_numero(delta, sinal=True, sufixo='%')} | "
+            f"{_numero(info.get('chuva_mm'))} | "
+            f"{_numero(info.get('vazao_natural_m3s'), 3)} | "
+            f"{_numero(zscore, 2, sinal=True)} |"
+        )
+
+    partes.extend([
+        "",
+        "### 3) Previsão HydroLSTM (7 dias, por sistema)",
+        "| Dia | Sistema | p10 | p50 | p90 | P(<30%) | P(<50%) | P(>80%) |",
+        "|---:|---|---:|---:|---:|---:|---:|---:|",
+    ])
+    for previsao in previsoes:
+        dia = int(previsao.get("dia", 0))
+        for campo, nome in _SISTEMAS_LSTM:
+            if campo not in previsao:
+                continue
+            prefixo_q = "volume_cantareira" if nome == "Cantareira" else campo
+            prefixo_p = "prob_cantareira" if nome == "Cantareira" else f"{campo}_prob"
+            partes.append(
+                f"| +{dia} | {nome} | "
+                f"{_numero(previsao.get(f'{prefixo_q}_p10'), 1, sufixo='%')} | "
+                f"{_numero(previsao.get(f'{prefixo_q}_p50'), 1, sufixo='%')} | "
+                f"{_numero(previsao.get(f'{prefixo_q}_p90'), 1, sufixo='%')} | "
+                f"{_numero(previsao.get(f'{prefixo_p}_sub_30_pct'), 1, sufixo='%')} | "
+                f"{_numero(previsao.get(f'{prefixo_p}_sub_50_pct'), 1, sufixo='%')} | "
+                f"{_numero(previsao.get(f'{prefixo_p}_acima_80_pct'), 1, sufixo='%')} |"
+            )
+
+    partes.extend([
+        "",
+        "### 4) Previsão Meteorológica (7 dias)",
+        "| Data | Chuva (mm) | Temp (°C) | Umidade (%) | Descrição |",
+        "|---|---:|---:|---:|---|",
+    ])
+    for previsao in ((weather or {}).get("previsoes") or [])[:len(previsoes)]:
+        partes.append(
+            f"| {str(previsao.get('data_hora') or '')[:10] or 'N/D'} | "
+            f"{_numero(previsao.get('precipitacao_mm'), 1)} | "
+            f"{_numero(previsao.get('temperatura_c'), 2)} | "
+            f"{_numero(previsao.get('umidade_pct'), 0)} | "
+            f"{previsao.get('descricao') or 'N/D'} |"
+        )
+
+    partes.extend([
+        "",
+        "### 5) Horizonte Estendido (empírico h+30 e h+90)",
+        "| Sistema | h+30 p10/p50/p90 | h+90 p10/p50/p90 |",
+        "|---|---|---|",
+    ])
+    for _, nome in _SISTEMAS_LSTM:
+        horizontes = []
+        for offset in (30, 90):
+            dados = _offset_historico(estado, nome, offset)
+            if not dados:
+                horizontes.append("N/D")
+            else:
+                horizontes.append(
+                    "/".join(_numero(dados.get(q), 2) for q in ("p10", "p50", "p90"))
+                )
+        partes.append(f"| {nome} | {horizontes[0]} | {horizontes[1]} |")
+
+    return "\n".join(partes)
+
+
+def _montar_relatorio_final(
+    narrativa: str,
+    estado: Dict,
+    previsoes: list,
+    weather: Optional[Dict],
+    *,
+    exigir_secoes: bool,
+) -> str:
+    inicio = re.search(r"(?m)^#{2,3}\s*6\)", narrativa or "")
+    if inicio:
+        narrativa = narrativa[inicio.start():].strip()
+    elif exigir_secoes:
+        raise RuntimeError("Sintetizador local nao retornou a secao 6 do relatorio.")
+
+    if exigir_secoes:
+        faltantes = [
+            numero
+            for numero in (6, 7, 8)
+            if not re.search(rf"(?m)^#{{2,3}}\s*{numero}\)", narrativa)
+        ]
+        if faltantes:
+            raise RuntimeError(f"Sintetizador local omitiu secoes obrigatorias: {faltantes}")
+
+    return f"{_secoes_fatuais(estado, previsoes, weather)}\n\n{narrativa.strip()}\n"
 
 
 # ─── Construtores de prompt ──────────────────────────────────────────────────
@@ -228,7 +427,7 @@ def _prompt_meteorologico(estado: Dict, previsoes: list, weather: Optional[Dict]
 {_formatar_lstm(previsoes)}
 
 ## PREVISÃO METEOROLÓGICA (OpenWeather — São Paulo)
-{_formatar_weather(weather)}
+{_formatar_weather(weather, max_dias=len(previsoes))}
 
 {_fmt_hist()}
 
@@ -350,7 +549,7 @@ Mês atual: {mes_atual} | Estação: {estacao}
 {_formatar_lstm(previsoes)}
 
 ## PREVISÃO METEOROLÓGICA (OpenWeather)
-{_formatar_weather(weather)}
+{_formatar_weather(weather, max_dias=len(previsoes))}
 
 ## ANÁLISES DOS ESPECIALISTAS
 {fmt_analise(analise_hidro, "Especialista Hidrológico")}
@@ -371,29 +570,10 @@ Mês atual: {mes_atual} | Estação: {estacao}
 {contexto[:2000]}
 
 ## TAREFA
-Produza o relatório técnico final em português técnico, direto e objetivo, seguindo EXATAMENTE este formato:
-
-### 1) Situação Atual (tabela)
-| Item | Valor |
-|------|-------|
-| Data de referência | ... |
-| Estação Climatológica | {estacao} |
-| Cantareira (%) | ... |
-| Macrometrópole média (%) | ... |
-| Sistemas críticos (<30%) | ... |
-
-### 2) Situação por Sistema e Deltas (tabela)
-Inclua todos os sistemas e a coluna "Delta vs p50 Mês" (volume atual - p50 histórico do mês).
-| Sistema | Volume (%) | Delta vs p50 Mês | Chuva (mm) | Vazão natural (m3/s) | Anomalia z-score |
-
-### 3) Previsão HidroLSTM (7 dias, por sistema)
-| Dia | Sistema | p10 | p50 | p90 | P(<30%) | P(<50%) | P(>80%) |
-
-### 4) Previsão Meteorológica (7 dias)
-| Data | Chuva (mm) | Temp (°C) | Umidade (%) | Descrição |
-
-### 5) Horizonte Estendido (empírico h+30 e h+90)
-| Sistema | h+30 p10/p50/p90 | h+90 p10/p50/p90 |
+As seções factuais 1 a 5 serão renderizadas deterministicamente pelo sistema.
+Produza SOMENTE as seções interpretativas 6 a 8, sem repetir tabelas nem criar
+novos números. Use apenas os valores fornecidos e deixe explícitas incertezas,
+limitações, divergências entre horizontes e a natureza heurística da confiança.
 
 ### 6) Riscos e Convergência
 - Risco hidrológico: ...
@@ -411,7 +591,7 @@ Inclua todos os sistemas e a coluna "Delta vs p50 Mês" (volume atual - p50 hist
 - Análise das métricas agregadas (Média/STD).
 - Sinais de alerta/inconsistência.
 
-Mantenha tabelas em Markdown, sem parágrafos soltos fora das seções."""
+Não escreva conteúdo antes da seção 6 nem depois da seção 8."""
 
 
 # ─── Orquestrador ─────────────────────────────────────────────────────────────
@@ -593,7 +773,14 @@ class OrquestradorLLM:
             estado, previsoes, weather, contexto,
             analise_hidro, analise_meteo, convergencia,
         )
-        return self.sintetizador(prompt, 1500)
+        narrativa = self.sintetizador(prompt, 2000)
+        return _montar_relatorio_final(
+            narrativa,
+            estado,
+            previsoes,
+            weather,
+            exigir_secoes=self.sintetizador is ask_mistral,
+        )
 
     # ── Pipeline público ──────────────────────────────────────────────────────
 
@@ -694,8 +881,16 @@ class OrquestradorLLM:
                 "alertas_meteo": convergencia.get("alertas_meteo", []),
             },
             "modelos": {
-                "hidro": {"nome": self.hidro.nome, "model": self.hidro.model},
-                "meteo": {"nome": self.meteo.nome, "model": self.meteo.model},
+                "hidro": {
+                    "nome": self.hidro.nome,
+                    "model_configurado": self.hidro.model,
+                    "model_efetivo": self.hidro.last_model_used,
+                },
+                "meteo": {
+                    "nome": self.meteo.nome,
+                    "model_configurado": self.meteo.model,
+                    "model_efetivo": self.meteo.last_model_used,
+                },
                 "hydro_lstm_sha": modelo_hash,
             },
             "versao_codigo": versao_codigo(),  # hash de conteudo real
