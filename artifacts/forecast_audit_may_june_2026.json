@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "audit_type": "retrospective_audit_of_archived_forecast_product",
+  "evaluated_at_utc": "2026-08-09T01:16:54.0432350Z",
+  "scope": {
+    "forecast_issue_date": "2026-05-07",
+    "short_horizon": ["2026-05-08", "2026-05-14"],
+    "medium_horizon_reference": "2026-06-06",
+    "units": "volume util em pontos percentuais"
+  },
+  "provenance": {
+    "forecast_report": {
+      "filename": "relatorio_20260507_233250.md",
+      "sha256": "518d117a42401c450b7d503055440069c4e00f5a5dc10baeb2e1d3176b14c148",
+      "filesystem_last_write": "2026-05-07T23:32:50.2493733-03:00"
+    },
+    "forecast_metadata": {
+      "filename": "metadata_20260507_233250.json",
+      "sha256": "7fdbfd85dd8cbbb991e942123013118e7cea66faae0ce9df71d1c191f3aecc1b",
+      "filesystem_last_write": "2026-05-07T23:32:50.2653740-03:00",
+      "code_version": "1eef4035e2c0",
+      "checkpoint_sha256_prefix": "a1fab152bd3f"
+    },
+    "observations": {
+      "provider": "SABESP Portal dos Mananciais",
+      "endpoint_template": "https://mananciais.sabesp.com.br/api/v4/sistemas/dados/resumo-diario/{YYYY-MM-DD}",
+      "retrieved_at_utc": "2026-08-09T01:16:54.0432350Z"
+    }
+  },
+  "short_horizon_cantareira": {
+    "archived_report_p50_pct": [41.9, 41.9, 41.9, 41.9, 41.9, 41.9, 41.9],
+    "observed": [
+      {"date": "2026-05-08", "pct": 41.7246},
+      {"date": "2026-05-09", "pct": 41.56183},
+      {"date": "2026-05-10", "pct": 41.50073},
+      {"date": "2026-05-11", "pct": 41.56118},
+      {"date": "2026-05-12", "pct": 41.53707},
+      {"date": "2026-05-13", "pct": 41.41937},
+      {"date": "2026-05-14", "pct": 41.32168}
+    ],
+    "metrics": {
+      "n": 7,
+      "mae_pp": 0.381934,
+      "rmse_pp": 0.399378,
+      "max_absolute_error_pp": 0.57832
+    }
+  },
+  "medium_horizon_direction": {
+    "archived_claim": "possivel reducao gradual dos volumes, especialmente no Cantareira",
+    "systems": [
+      {"name": "Cantareira", "may_07_pct": 41.85237, "june_06_pct": 39.64142, "delta_pp": -2.21095, "compatible": true},
+      {"name": "Alto Tiete", "may_07_pct": 52.47844, "june_06_pct": 50.23241, "delta_pp": -2.24603, "compatible": true},
+      {"name": "Guarapiranga", "may_07_pct": 81.28889, "june_06_pct": 76.54935, "delta_pp": -4.73954, "compatible": true},
+      {"name": "Cotia", "may_07_pct": 62.15214, "june_06_pct": 60.54605, "delta_pp": -1.60609, "compatible": true},
+      {"name": "Rio Grande", "may_07_pct": 88.77634, "june_06_pct": 85.30583, "delta_pp": -3.47051, "compatible": true},
+      {"name": "Rio Claro", "may_07_pct": 61.40535, "june_06_pct": 64.87942, "delta_pp": 3.47407, "compatible": false}
+    ],
+    "directional_compatibility": {
+      "correct": 5,
+      "total": 6,
+      "rate": 0.833333
+    }
+  },
+  "h30_empirical_climatology": {
+    "not_hydrolstm_point_forecast": true,
+    "p10_p90_coverage": {"covered": 6, "total": 6, "rate": 1.0},
+    "p50_mae_pp": 15.1087,
+    "mean_interval_width_pp": 46.324244,
+    "interpretation": "A cobertura integral nao demonstra precisao: os intervalos sao muito largos e o erro da mediana e alto."
+  },
+  "sensitivity_case_may_13": {
+    "forecast_report": {
+      "filename": "relatorio_20260513_231052.md",
+      "sha256": "e1631019fe393eac210a81ede42f2dd2735bc0dc6c9eaa9745d84d90f6ce49d0"
+    },
+    "forecast_metadata": {
+      "filename": "metadata_20260513_231052.json",
+      "sha256": "589e2d83edaa66deecad32be26b331ac2873b6dd09408718474d95ca95936a9f",
+      "probabilidades_previsao": null
+    },
+    "archived_report_p50_pct": 53.5,
+    "observed_period": ["2026-05-14", "2026-05-20"],
+    "mae_pp": 12.338334,
+    "rmse_pp": 12.338623,
+    "attribution_limit": "O vetor bruto nao foi persistido e as tabelas eram redigidas por LLM; a discrepancia nao pode ser atribuida isoladamente ao HydroLSTM."
+  },
+  "conclusion": {
+    "supported": "O produto de 07/05 teve excelente aderencia numerica para Cantareira em sete dias e antecipou a direcao predominante de queda ate 06/06.",
+    "not_supported": "Nao ha evidencia para afirmar acerto universal, calibracao probabilistica ou precisao do p50 climatologico em 30 dias.",
+    "provenance_limit": "Os arquivos possuem hashes, timestamps internos e mtime local, mas nao um carimbo de tempo independente ou registro previo em repositorio publico."
+  }
+}

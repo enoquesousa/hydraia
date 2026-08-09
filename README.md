@@ -101,6 +101,7 @@ A suíte cobre coleta e schemas, cache atômico, circuit breaker, orçamento, CL
 - [Metodologia e matemática](docs/METHODOLOGY.md)
 - [Modelo local e GPU](docs/LOCAL_MODEL.md)
 - [Validação operacional real](docs/VALIDACAO_REAL.md)
+- [Auditoria da previsão maio-junho de 2026](docs/VALIDACAO_MAIO_JUNHO_2026.md)
 - [Errata e limitações](docs/ERRATA.md)
 - [Escopo da publicação](docs/PUBLICATION_SCOPE.md)
 - [Como citar](CITATION.cff)

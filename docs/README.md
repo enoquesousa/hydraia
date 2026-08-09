@@ -11,6 +11,7 @@
 7. [Errata científica](ERRATA.md)
 8. [Escopo da publicação](PUBLICATION_SCOPE.md)
 9. [Validação operacional real](VALIDACAO_REAL.md)
+10. [Auditoria da previsão maio-junho de 2026](VALIDACAO_MAIO_JUNHO_2026.md)
 
 `Crises_Hidricas_SP.md` é um corpus de contexto injetado nos prompts do sintetizador, não uma fonte de verdade operacional. `DOCUMENTACAO_TCC.md` descreve uma versão exploratória anterior e não integra o escopo público curado.
 
