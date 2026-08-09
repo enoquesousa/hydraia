@@ -1,5 +1,9 @@
 # Model Card — HydroLSTM
 
+> **International academic context:** this model card is part of HydraIA, a
+> [Brazilian Undergraduate Thesis (TCC)](ACADEMIC_CONTEXT.md) and final-year
+> Computer Engineering capstone project completed at FMU, Brazil, in 2026.
+
 ## Identificação
 
 - **Nome:** HydroLSTM

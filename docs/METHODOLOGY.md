@@ -1,5 +1,9 @@
 # Metodologia e formulação matemática
 
+> **International academic context:** this methodology is part of HydraIA, a
+> [Brazilian Undergraduate Thesis (TCC)](ACADEMIC_CONTEXT.md) and final-year
+> Computer Engineering capstone project completed at FMU, Brazil, in 2026.
+
 ## Problema supervisionado
 
 Para cada instante de origem `t`, o modelo recebe uma janela retrospectiva de 90 dias:

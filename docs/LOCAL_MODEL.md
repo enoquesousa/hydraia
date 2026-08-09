@@ -1,5 +1,9 @@
 # Modelo local de síntese e uso de GPU
 
+> **International academic context:** this deployment note is part of HydraIA,
+> a [Brazilian Undergraduate Thesis (TCC)](ACADEMIC_CONTEXT.md) and final-year
+> Computer Engineering capstone project completed at FMU, Brazil, in 2026.
+
 > **Mudança pós-entrega:** o artigo entregue registra Mistral 7B Instruct v0.3. O Qwen3.5 é o perfil operacional preparado posteriormente para a publicação do repositório; não deve ser apresentado como modelo usado nos resultados históricos do TCC.
 
 ## Perfil recomendado

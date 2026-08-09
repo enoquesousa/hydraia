@@ -1,5 +1,9 @@
 # Arquitetura do HydraIA
 
+> **International academic context:** this document is part of HydraIA, a
+> [Brazilian Undergraduate Thesis (TCC)](ACADEMIC_CONTEXT.md) and final-year
+> Computer Engineering capstone project completed at FMU, Brazil, in 2026.
+
 ## Visão de contexto
 
 HydraIA é um pipeline batch/CLI, não uma aplicação web. O limite de confiança do sistema termina na geração de um relatório técnico: ações operacionais permanecem sob responsabilidade humana.

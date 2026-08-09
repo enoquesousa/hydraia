@@ -1,5 +1,9 @@
 # **Dinâmicas Hidroclimatológicas e Resiliência Urbana: Uma Análise Multidimensional da Crise Hídrica na Macrometrópole Paulista (1900–2025)**
 
+> **International academic context:** this supporting corpus is part of HydraIA,
+> a [Brazilian Undergraduate Thesis (TCC)](ACADEMIC_CONTEXT.md) and final-year
+> Computer Engineering capstone project completed at FMU, Brazil, in 2026.
+
 > **Nota de uso:** este texto é um corpus narrativo de contexto para os prompts do protótipo. Não é uma base de dados validada, não substitui as fontes citadas e não deve ser usado isoladamente para decisão operacional. Afirmações numéricas devem ser verificadas nas referências primárias.
 
 ## **1\. Introdução: O Paradigma da Escassez na Abundância Tropical**

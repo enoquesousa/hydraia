@@ -1,5 +1,9 @@
 # Errata científica e notas pós-entrega
 
+> **International academic context:** this errata belongs to HydraIA, a
+> [Brazilian Undergraduate Thesis (TCC)](ACADEMIC_CONTEXT.md) and final-year
+> Computer Engineering capstone project completed at FMU, Brazil, in 2026.
+
 O PDF do TCC é preservado como entregue. Este documento registra descobertas da auditoria de publicação feita em 08/08/2026 e prevalece para interpretação dos artefatos atuais.
 
 ## 1. Unidade do MAE de validação

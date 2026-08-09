@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "Se você utilizar este trabalho como referência, cite o artigo e este repositório."
+message: "Please cite this Brazilian Undergraduate Thesis (TCC), its delivered paper, and the software repository."
 title: "HydraIA: sistema híbrido de aprendizado profundo e ensemble de modelos de linguagem para análise de risco hídrico na Macrometrópole Paulista"
 type: software
 version: 1.0.0
@@ -10,8 +10,13 @@ authors:
   - family-names: "Approbato"
     given-names: "Clever"
     affiliation: "Centro Universitário das Faculdades Metropolitanas Unidas"
-abstract: "Protótipo acadêmico que integra dados da SABESP, uma HydroLSTM e um ensemble de LLMs para análise de risco hídrico."
+abstract: "Brazilian Undergraduate Thesis (TCC) and Computer Engineering capstone that integrates SABESP data, a HydroLSTM model, and an LLM ensemble for hydrological risk analysis."
+repository-code: "https://github.com/ESousa97/hydraia"
+url: "https://github.com/ESousa97/hydraia"
 keywords:
+  - Brazilian undergraduate thesis
+  - TCC
+  - Computer Engineering capstone
   - hydrology
   - time series
   - LSTM

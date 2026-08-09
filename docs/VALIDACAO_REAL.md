@@ -1,5 +1,9 @@
 # Validação operacional real — 2026-08-08
 
+> **International academic context:** this validation supports HydraIA, a
+> [Brazilian Undergraduate Thesis (TCC)](ACADEMIC_CONTEXT.md) and final-year
+> Computer Engineering capstone project completed at FMU, Brazil, in 2026.
+
 Este registro documenta um ensaio pós-entrega feito para validar o perfil de
 publicação do repositório. Ele não substitui os experimentos do TCC nem deve ser
 apresentado como evidência histórica produzida na época da entrega.

@@ -1,5 +1,11 @@
 # HydraIA
 
+**Brazilian Undergraduate Thesis (Trabalho de Conclusão de Curso — TCC) ·
+Final-year Computer Engineering Capstone Project · FMU, Brazil · 2026**
+
+[English](README.en.md) · [Contexto acadêmico internacional](docs/ACADEMIC_CONTEXT.md) ·
+[Artigo final](paper/HydraIA_TCC.pdf) · [Como citar](CITATION.cff)
+
 Protótipo de pesquisa para análise de risco hídrico na Macrometrópole de São Paulo. O sistema combina séries temporais da SABESP, uma rede HydroLSTM, previsão meteorológica e um ensemble de modelos de linguagem para produzir relatórios técnicos rastreáveis.
 
 > **Escopo:** artefato acadêmico de Engenharia de Computação. Não é um sistema operacional da SABESP, não substitui previsão hidrológica oficial e não deve fundamentar sozinho decisões de segurança hídrica.
@@ -95,7 +101,8 @@ A suíte cobre coleta e schemas, cache atômico, circuit breaker, orçamento, CL
 
 ## Material acadêmico
 
-- [Artigo final do TCC](paper/HydraIA_TCC.pdf)
+- [Contexto acadêmico e terminologia internacional](docs/ACADEMIC_CONTEXT.md)
+- [Artigo final do TCC / Undergraduate Thesis](paper/HydraIA_TCC.pdf)
 - [Apresentação em PDF](presentation/HydraIA_Apresentacao.pdf)
 - [Arquitetura de software](docs/ARCHITECTURE.md)
 - [Metodologia e matemática](docs/METHODOLOGY.md)

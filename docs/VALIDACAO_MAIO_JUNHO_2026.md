@@ -1,5 +1,9 @@
 # Auditoria da previsão de maio para junho de 2026
 
+> **International academic context:** this audit supports HydraIA, a
+> [Brazilian Undergraduate Thesis (TCC)](ACADEMIC_CONTEXT.md) and final-year
+> Computer Engineering capstone project completed at FMU, Brazil, in 2026.
+
 ## Conclusão
 
 A afirmação de que a previsão foi certeira é sustentada em um escopo específico:

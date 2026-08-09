@@ -1,5 +1,9 @@
 # Data Card — séries hidrológicas HydraIA
 
+> **International academic context:** this document is part of HydraIA, a
+> [Brazilian Undergraduate Thesis (TCC)](ACADEMIC_CONTEXT.md) and final-year
+> Computer Engineering capstone project completed at FMU, Brazil, in 2026.
+
 ## Resumo
 
 O dataset de treinamento é derivado de séries diárias públicas expostas pela API de mananciais da SABESP. Os dados brutos não são redistribuídos neste repositório; devem ser obtidos novamente na fonte e submetidos ao pipeline de preparação.

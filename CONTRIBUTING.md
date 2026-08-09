@@ -1,5 +1,10 @@
 # Contribuindo
 
+> HydraIA is a completed
+> [Brazilian Undergraduate Thesis (TCC)](docs/ACADEMIC_CONTEXT.md) and final-year
+> Computer Engineering capstone project. Contributions must preserve its
+> academic provenance and the boundary between submitted and post-submission work.
+
 Este repositório registra um trabalho acadêmico concluído. Correções de reprodutibilidade, segurança, documentação e testes são bem-vindas; mudanças que alterem resultados científicos devem vir acompanhadas de nova avaliação e proveniência dos artefatos.
 
 ## Fluxo local

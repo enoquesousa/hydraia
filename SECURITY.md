@@ -1,5 +1,10 @@
 # Política de segurança
 
+> HydraIA is a
+> [Brazilian Undergraduate Thesis (TCC)](docs/ACADEMIC_CONTEXT.md) and final-year
+> Computer Engineering capstone project, not a production water-management
+> service.
+
 ## Dados que nunca devem ser publicados
 
 - arquivos `.env` e chaves de API;

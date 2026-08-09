@@ -1,5 +1,10 @@
 # Guia de reprodutibilidade
 
+> **International academic context:** this reproducibility guide is part of
+> HydraIA, a [Brazilian Undergraduate Thesis (TCC)](ACADEMIC_CONTEXT.md) and
+> final-year Computer Engineering capstone project completed at FMU, Brazil,
+> in 2026.
+
 ## Níveis de reprodução
 
 1. **Software:** executar testes e demo totalmente offline.

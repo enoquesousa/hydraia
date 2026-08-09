@@ -1,5 +1,10 @@
 # Detalhamento do Projeto HydraIA
 
+> **International academic context:** HydraIA is José Enoque Fernandes de
+> Sousa's [Brazilian Undergraduate Thesis (TCC)](ACADEMIC_CONTEXT.md) and
+> final-year Computer Engineering capstone project, completed at FMU, Brazil,
+> in 2026.
+
 Este documento detalha a identidade, propósito, arquitetura e tecnologias do projeto HydraIA, servindo como base descritiva para apresentações e capítulos introdutórios do TCC.
 
 ---

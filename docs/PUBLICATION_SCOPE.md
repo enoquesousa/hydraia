@@ -1,5 +1,10 @@
 # Escopo da publicação
 
+> **International academic context:** this repository publishes HydraIA, José
+> Enoque Fernandes de Sousa's
+> [Brazilian Undergraduate Thesis (TCC)](ACADEMIC_CONTEXT.md) and final-year
+> Computer Engineering capstone project, completed at FMU, Brazil, in 2026.
+
 ## Incluído no Git
 
 - código-fonte de `src/` e `scripts/`;
