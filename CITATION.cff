@@ -11,8 +11,8 @@ authors:
     given-names: "Clever"
     affiliation: "Centro Universitário das Faculdades Metropolitanas Unidas"
 abstract: "Brazilian Undergraduate Thesis (TCC) and Computer Engineering capstone that integrates SABESP data, a HydroLSTM model, and an LLM ensemble for hydrological risk analysis."
-repository-code: "https://github.com/ESousa97/hydraia"
-url: "https://github.com/ESousa97/hydraia"
+repository-code: "https://github.com/enoquesousa/hydraia"
+url: "https://github.com/enoquesousa/hydraia"
 keywords:
   - Brazilian undergraduate thesis
   - TCC
