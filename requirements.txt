@@ -7,7 +7,7 @@ google-genai>=1.7,<2.0
 openai>=2.0,<3.0
 
 # Ambiente científico compatível com os artefatos auditados
-torch==2.7.1
+torch==2.13.0
 numpy==2.2.6
 pandas==2.3.3
 scikit-learn==1.8.0
