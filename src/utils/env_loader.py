@@ -13,6 +13,16 @@ from typing import Optional, Dict
 
 from src.utils.paths import HydraPaths
 
+API_KEY_PLACEHOLDERS = frozenset({
+    "your_api_key_here",
+    "your_openweather_key_here",
+    "your_gemini_key_here",
+    "your_openai_key_here",
+    "changeme",
+    "todo",
+    "xxxx",
+})
+
 class EnvLoader:
     """Carrega e valida variáveis de ambiente do arquivo .env"""
 
@@ -55,8 +65,8 @@ class EnvLoader:
                         if chave not in os.environ:
                             os.environ[chave] = valor
 
-        except Exception as e:
-            print(f"❌ Erro ao carregar .env: {e}")
+        except Exception:
+            print("❌ Erro ao carregar .env: leitura ou formato invalido")
 
     @staticmethod
     def get(chave: str, default: Optional[str] = None, obrigatorio: bool = False) -> Optional[str]:
@@ -94,7 +104,7 @@ class EnvLoader:
         try:
             return int(valor)
         except ValueError:
-            print(f"⚠️  Erro ao converter '{chave}={valor}' para int, usando default={default}")
+            print(f"⚠️  Erro ao converter '{chave}' para int; usando valor padrao")
             return default
 
     @staticmethod
@@ -107,7 +117,7 @@ class EnvLoader:
         try:
             return float(valor)
         except ValueError:
-            print(f"⚠️  Erro ao converter '{chave}={valor}' para float, usando default={default}")
+            print(f"⚠️  Erro ao converter '{chave}' para float; usando valor padrao")
             return default
 
     @staticmethod
@@ -137,7 +147,12 @@ class EnvLoader:
 
         for chave in chaves:
             valor = os.environ.get(chave)
-            configurado = bool(valor and valor.strip() and valor != f"sua_chave_{chave.lower()}_aqui")
+            normalizado = valor.strip().lower() if valor else ""
+            configurado = bool(
+                normalizado
+                and normalizado not in API_KEY_PLACEHOLDERS
+                and normalizado != f"sua_chave_{chave.lower()}_aqui"
+            )
             resultado[chave] = configurado
 
         return resultado

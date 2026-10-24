@@ -52,6 +52,16 @@ LM_STUDIO_REASONING=off
 
 O cliente em `src/models/hydraia_llm.py` também aceita `LM_STUDIO_MODEL=auto` e ignora modelos de embedding durante a descoberta.
 
+Mantenha o servidor vinculado ao loopback. O cliente aceita HTTP apenas para
+`localhost` ou IP de loopback; um endereço remoto precisa usar HTTPS com
+certificado confiável. Isso também vale para o override `LM_STUDIO_NATIVE_CHAT_URL`.
+URLs com credenciais embutidas, query ou fragmento são recusadas. Nenhuma etapa
+de descoberta, chat ou fallback segue redirecionamentos.
+
+O cliente não envia um token de autenticação ao LM Studio. Um endpoint remoto
+precisa de controle de acesso próprio; usar HTTPS, por si só, não restringe quem
+pode utilizá-lo. Consulte os [limites de transporte e diagnóstico](../SECURITY.md#transporte-e-diagnóstico).
+
 ## Verificação
 
 ```bash

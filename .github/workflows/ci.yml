@@ -8,25 +8,55 @@ on:
 permissions:
   contents: read
 
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Python 3.12
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
+          pip-version: "26.2"
           cache: pip
           cache-dependency-path: |
             requirements.txt
             requirements-dev.txt
 
-      - name: Install
-        run: python -m pip install -r requirements-dev.txt
+      - name: Install the pinned CPU environment
+        run: |
+          python -m pip install "setuptools==84.1.0"
+          python -m pip install --no-deps "torch==2.13.0" --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements-dev.txt
+          python -m pip check
+
+      - name: Verify scientific versions
+        run: |
+          python - <<'PY'
+          from importlib.metadata import version
+          import torch
+
+          expected = {
+              "torch": "2.13.0+cpu",
+              "numpy": "2.2.6",
+              "pandas": "2.3.3",
+              "scikit-learn": "1.8.0",
+          }
+          for package, pinned in expected.items():
+              actual = version(package)
+              assert actual == pinned, f"{package}: expected {pinned}, got {actual}"
+              print(f"{package}=={actual}")
+          assert torch.version.cuda is None, "CI must use the CPU build"
+          PY
 
       - name: Critical static checks
         run: ruff check src tests scripts
@@ -38,3 +68,27 @@ jobs:
 
       - name: Offline CLI smoke test
         run: python -m src.cli run --modo-simulado --skip-llm --skip-preflight --horizonte-dias 3
+
+      - name: Audit installed packages
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          from importlib.metadata import distributions
+          from pathlib import Path
+
+          requirements = []
+          for distribution in distributions():
+              name = distribution.metadata["Name"]
+              version = distribution.version
+              if name.lower() == "torch":
+                  # PyPI advisories track the public release, not its CPU build suffix.
+                  assert version == "2.13.0+cpu"
+                  version = "2.13.0"
+              requirements.append(f"{name}=={version}")
+          path = Path(os.environ["RUNNER_TEMP"]) / "hydraia-installed.txt"
+          path.write_text("\n".join(sorted(requirements)) + "\n")
+          PY
+          python -m venv "$RUNNER_TEMP/hydraia-audit"
+          "$RUNNER_TEMP/hydraia-audit/bin/python" -m pip install "pip==26.2" "setuptools==84.1.0" "pip-audit==2.10.1"
+          "$RUNNER_TEMP/hydraia-audit/bin/python" -m pip_audit -r "$RUNNER_TEMP/hydraia-installed.txt" --no-deps --disable-pip --strict --progress-spinner off

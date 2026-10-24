@@ -219,16 +219,16 @@ class LLMSpecialist(ABC):
                 logger.error("[%s] %s — abortando.", self.nome, e)
                 return None
             except StopRetry as e:
-                logger.error("[%s] Erro permanente: %s", self.nome, e)
+                logger.error("[%s] Erro permanente (%s).", self.nome, type(e).__name__)
                 return None
             except Exception as e:
                 if tentativa <= self.max_retries:
                     logger.warning("[%s] Tentativa %d falhou (%s) — aguardando %.0fs...",
-                                   self.nome, tentativa, e, self.backoff_s)
+                                   self.nome, tentativa, type(e).__name__, self.backoff_s)
                     time.sleep(self.backoff_s)
                 else:
                     logger.error("[%s] Todas as %d tentativas falharam: %s",
-                                 self.nome, self.max_retries + 1, e)
+                                 self.nome, self.max_retries + 1, type(e).__name__)
         return None
 
     def _chamar_com_timeout(self, prompt: str) -> str:
@@ -314,7 +314,7 @@ class GPTSpecialist(LLMSpecialist):
             if m not in candidatos:
                 candidatos.append(m)
 
-        ultimo_erro: Optional[Exception] = None
+        ultimo_tipo: Optional[str] = None
         for modelo in candidatos:
             payload: Dict = {
                 "model": modelo,
@@ -344,19 +344,22 @@ class GPTSpecialist(LLMSpecialist):
                         self.last_model_used = modelo
                         return response.output_text or ""
                     except Exception as e2:
-                        ultimo_erro = e2
+                        ultimo_tipo = type(e2).__name__
                         continue
                 if "model" in msg and ("does not exist" in msg or "not found" in msg or "access" in msg):
                     logger.warning("[%s] Modelo '%s' indisponivel — tentando proximo fallback", self.nome, modelo)
-                    ultimo_erro = e
+                    ultimo_tipo = type(e).__name__
                     continue
-                raise StopRetry(f"BadRequest nao relacionado a temperature: {e}") from e
+                raise StopRetry("Requisicao OpenAI recusada fora do fallback de temperature.") from None
             except NotFoundError as e:
                 logger.warning("[%s] Modelo '%s' nao encontrado — tentando fallback", self.nome, modelo)
-                ultimo_erro = e
+                ultimo_tipo = type(e).__name__
                 continue
-            except AuthenticationError as e:
-                raise StopRetry(f"Chave OpenAI invalida: {e}") from e
+            except AuthenticationError:
+                raise StopRetry("Chave OpenAI recusada pelo provedor.") from None
 
         # Se chegou aqui, nenhum modelo funcionou
-        raise StopRetry(f"Nenhum modelo OpenAI acessivel (tentados: {candidatos}). Ultimo erro: {ultimo_erro}")
+        raise StopRetry(
+            f"Nenhum modelo OpenAI acessivel (tentados: {candidatos}). "
+            f"Ultima categoria de erro: {ultimo_tipo}"
+        )

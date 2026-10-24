@@ -29,12 +29,14 @@ import os
 import re
 import sys
 import time
+import traceback
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import RLock
 from typing import Any, Dict, Iterator, Optional
+from urllib.parse import parse_qsl, unquote, urlencode, urlsplit, urlunsplit
 
 
 # ─── Correlation ID ──────────────────────────────────────────────────────────
@@ -62,17 +64,62 @@ class CorrelationFilter(logging.Filter):
 
 # ─── Mascaramento de tokens ──────────────────────────────────────────────────
 
-_RE_TOKEN = re.compile(r"\b(sk-[A-Za-z0-9_\-]{10,}|AIza[A-Za-z0-9_\-]{20,}|Bearer\s+[A-Za-z0-9._\-]+)\b")
-_RE_TOKEN_KV = re.compile(r"(api[_\-]?key|token|authorization|bearer)\s*[:=]\s*\"?([^\s\"',]{6,})", re.IGNORECASE)
+_RE_TOKEN = re.compile(
+    r"\b(sk-[A-Za-z0-9_\-]{10,}|AIza[A-Za-z0-9_\-]{20,}|"
+    r"(?:Bearer|Basic)\s+[A-Za-z0-9._~+/=\-]+)", re.IGNORECASE,
+)
+_RE_TOKEN_KV = re.compile(
+    r'''(?<![\w%\-])(?P<key>[\w%\-]+)(?P<separator>["']?\s*[:=]\s*)'''
+    r'''(?P<value>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s"',;&}\]]+)''',
+    re.IGNORECASE,
+)
+_RE_URL = re.compile(r'''https?://[^\s<>"']+''', re.IGNORECASE)
+_SENSITIVE_FIELDS = {
+    "appid", "key", "api_key", "apikey", "token", "authorization",
+    "proxy_authorization", "bearer", "secret", "password", "accesstoken",
+    "refreshtoken", "idtoken",
+}
+
+
+def _mascarar_campo(match: re.Match) -> str:
+    key = unquote(match.group("key")).lower().replace("-", "_")
+    sensitive = key in _SENSITIVE_FIELDS or key.endswith(
+        ("_api_key", "_token", "_secret", "_password")
+    )
+    if not sensitive:
+        return match.group(0)
+    value = match.group("value")
+    quote = value[0] if value[0] in "\"'" else ""
+    return f"{match.group('key')}{match.group('separator')}{quote}***{quote}"
+
+
+def _mascarar_url(match: re.Match) -> str:
+    """Mantem endpoint e nomes dos parametros, nunca seus valores."""
+    try:
+        parts = urlsplit(match.group(0))
+        query = urlencode(
+            [(name, "***") for name, _ in parse_qsl(
+                parts.query, keep_blank_values=True, max_num_fields=256,
+            )],
+            safe="*",
+        )
+        netloc = parts.netloc
+        if "@" in netloc:
+            netloc = "***@" + netloc.rsplit("@", 1)[1]
+        return urlunsplit((
+            parts.scheme, netloc, parts.path, query, "***" if parts.fragment else "",
+        ))
+    except ValueError:
+        return "[URL omitida]"
 
 
 def mascarar_token(texto: str) -> str:
-    """Substitui tokens conhecidos por '***'. Heuristica conservadora."""
+    """Oculta queries e padroes conhecidos; nao reconhece todo segredo arbitrario."""
     if not texto:
         return texto
     out = _RE_TOKEN.sub("***", texto)
-    out = _RE_TOKEN_KV.sub(lambda m: f"{m.group(1)}=***", out)
-    return out
+    out = _RE_TOKEN_KV.sub(_mascarar_campo, out)
+    return _RE_URL.sub(_mascarar_url, out)
 
 
 class MaskingFilter(logging.Filter):
@@ -83,25 +130,72 @@ class MaskingFilter(logging.Filter):
             record.msg = mascarar_token(msg)
             record.args = ()
         except Exception:
-            pass
+            # Nao deixe o erro de interpolacao do logging imprimir args brutos.
+            record.msg = "Mensagem de log indisponivel."
+            record.args = ()
         return True
 
 
 # ─── Formatadores ────────────────────────────────────────────────────────────
 
-class JsonFormatter(logging.Formatter):
+def _exception_lines(error: BaseException, tb, seen: set[int]) -> list[str]:
+    if id(error) in seen:
+        return ["[referencia de excecao repetida]"]
+    seen.add(id(error))
+    lines = []
+    previous = error.__cause__
+    if previous is None and not error.__suppress_context__:
+        previous = error.__context__
+    if previous is not None:
+        lines.extend(_exception_lines(previous, previous.__traceback__, seen))
+        lines.append("A excecao acima antecedeu a seguinte:")
+    if tb is not None:
+        lines.append("Traceback (most recent call last):")
+        for frame, lineno in traceback.walk_tb(tb):
+            # Nao consulte linhas de fonte, variaveis locais ou str(error).
+            filename = json.dumps(frame.f_code.co_filename, ensure_ascii=False)
+            lines.append(f"  File {filename}, line {lineno}, in {frame.f_code.co_name}")
+    lines.append(f"{type(error).__name__}: [mensagem omitida]")
+    if isinstance(error, BaseExceptionGroup):
+        for child in error.exceptions:
+            lines.extend(_exception_lines(child, child.__traceback__, seen))
+    return lines
+
+
+class _SafeFormatter(logging.Formatter):
+    """Preserva classe/frames sem serializar valores potencialmente confidenciais."""
+
+    def formatException(self, exc_info) -> str:
+        try:
+            return mascarar_token("\n".join(_exception_lines(exc_info[1], exc_info[2], set())))
+        except Exception:
+            return "Detalhes da excecao indisponiveis."
+
+    def formatStack(self, stack_info: str) -> str:
+        frames = [line for line in stack_info.splitlines() if line.startswith('  File "')]
+        return mascarar_token("\n".join(["Stack (most recent call last):", *frames]))
+
+    def format(self, record: logging.LogRecord) -> str:
+        # Outro handler pode ter armazenado uma representacao nao sanitizada.
+        record.exc_text = None
+        return mascarar_token(super().format(record))
+
+
+class JsonFormatter(_SafeFormatter):
     """Formata logs como JSON line — facil de parsear/grep em pipelines."""
 
     def format(self, record: logging.LogRecord) -> str:
         payload = {
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(record.created)),
             "level": record.levelname,
-            "logger": record.name,
-            "correlation_id": getattr(record, "correlation_id", "-"),
-            "message": record.getMessage(),
+            "logger": mascarar_token(record.name),
+            "correlation_id": mascarar_token(getattr(record, "correlation_id", "-")),
+            "message": mascarar_token(record.getMessage()),
         }
         if record.exc_info:
             payload["exc_info"] = self.formatException(record.exc_info)
+        if record.stack_info:
+            payload["stack_info"] = self.formatStack(record.stack_info)
         return json.dumps(payload, ensure_ascii=False)
 
 
@@ -139,7 +233,7 @@ def setup_logging(
     if json_logs:
         handler.setFormatter(JsonFormatter())
     else:
-        handler.setFormatter(logging.Formatter(
+        handler.setFormatter(_SafeFormatter(
             "%(asctime)s [%(levelname)s] [cid=%(correlation_id)s] %(name)s — %(message)s",
             datefmt="%H:%M:%S",
         ))

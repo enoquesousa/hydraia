@@ -17,6 +17,7 @@ import requests
 
 from src.utils.circuit_breaker import CircuitBreaker, CircuitOpenError
 from src.utils.env_loader import EnvLoader
+from src.utils.http_security import exigir_resposta_sem_redirecionamento, validar_url_servico
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,24 @@ def _validar_schema_one_call(payload: Any) -> Dict:
     if not payload["daily"]:
         raise WeatherSchemaError("'daily' vazio — sem previsoes")
     return payload
+
+
+def _diagnostico_http(error: requests.RequestException) -> tuple[str, int | str]:
+    """Use apenas categorias conhecidas e status; nunca str(error), URL ou body."""
+    classes = (
+        requests.exceptions.SSLError,
+        requests.exceptions.Timeout,
+        requests.exceptions.ConnectionError,
+        requests.exceptions.HTTPError,
+        requests.exceptions.TooManyRedirects,
+        requests.exceptions.InvalidURL,
+    )
+    category = next((kind.__name__ for kind in classes if isinstance(error, kind)),
+                    "RequestException")
+    status = getattr(error.response, "status_code", None)
+    if type(status) is not int or not 100 <= status <= 599:
+        status = "indisponivel"
+    return category, status
 
 
 class OpenWeatherCollector:
@@ -52,7 +71,9 @@ class OpenWeatherCollector:
                 "Configure OPENWEATHER_API_KEY no arquivo .env"
             )
 
-        self.base_url = config.get('base_url', 'https://api.openweathermap.org/data/3.0')
+        self.base_url = validar_url_servico(
+            config.get('base_url', 'https://api.openweathermap.org/data/3.0')
+        )
         self.timeout = config.get('timeout', 10)
         self.retry_attempts = config.get('retry_attempts', 3)
         self._breaker = CircuitBreaker(
@@ -85,8 +106,15 @@ class OpenWeatherCollector:
         for attempt in range(self.retry_attempts):
             try:
                 def _get():
-                    return requests.get(endpoint, params=params, timeout=self.timeout)
+                    return requests.get(
+                        endpoint, params=params, timeout=self.timeout, allow_redirects=False,
+                    )
                 response = self._breaker.call(_get)
+                try:
+                    exigir_resposta_sem_redirecionamento(response)
+                except RuntimeError:
+                    logger.error("[OpenWeather] Redirecionamento HTTP recusado.")
+                    return None
                 response.raise_for_status()
                 data = _validar_schema_one_call(response.json())
                 return self._processar_resposta(data)
@@ -98,8 +126,9 @@ class OpenWeatherCollector:
                 logger.error("[OpenWeather] Schema invalido: %s", e)
                 return None
             except requests.exceptions.RequestException as e:
-                logger.warning("[OpenWeather] Tentativa %d/%d falhou: %s",
-                               attempt + 1, self.retry_attempts, e)
+                category, status = _diagnostico_http(e)
+                logger.warning("[OpenWeather] Tentativa %d/%d falhou (%s; HTTP %s).",
+                               attempt + 1, self.retry_attempts, category, status)
                 if attempt < self.retry_attempts - 1:
                     time.sleep(2 ** attempt)
                 else:

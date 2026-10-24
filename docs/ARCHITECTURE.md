@@ -75,7 +75,13 @@ flowchart LR
 - `src/utils/circuit_breaker.py`: isolamento de integrações instáveis.
 - `src/utils/budget.py`: limites de chamadas, tokens estimados e tempo de parede.
 - `src/utils/observabilidade.py`: correlation ID, logs mascarados, métricas e hash de versão.
+- `src/utils/http_security.py`: validação de destinos HTTPS/loopback e recusa de redirecionamentos nos clientes de chaves e de síntese.
 - `src/utils/persistence.py`: histórico estruturado em SQLite.
+
+O [modelo de credenciais](../SECURITY.md#componentes-credenciais-e-fluxo) detalha
+o caminho entre ambiente, clientes, provedores e armazenamento local. A aplicação
+não emite tokens de usuário; autenticação nos provedores e permissões do sistema
+operacional são controles distintos.
 
 ## Decisões de engenharia
 
