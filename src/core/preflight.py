@@ -22,7 +22,11 @@ from typing import Dict, List, Optional, Sequence
 
 import requests
 
-from src.utils.env_loader import EnvLoader
+from src.utils.env_loader import API_KEY_PLACEHOLDERS, EnvLoader
+from src.utils.http_security import (
+    exigir_resposta_sem_redirecionamento,
+    validar_url_servico,
+)
 from src.utils.paths import HydraPaths
 
 logger = logging.getLogger(__name__)
@@ -52,14 +56,10 @@ def _api_key_valida(valor: Optional[str], chave: str) -> bool:
     v = valor.strip()
     if len(v) < 10:
         return False
-    placeholders = {
-        f"sua_chave_{chave.lower()}_aqui",
-        "your_api_key_here",
-        "changeme",
-        "todo",
-        "xxxx",
-    }
-    return v.lower() not in placeholders
+    return (
+        v.lower() not in API_KEY_PLACEHOLDERS
+        and v.lower() != f"sua_chave_{chave.lower()}_aqui"
+    )
 
 
 def _check_chave(env_var: str, *, obrigatoria: bool = True) -> CheckResult:
@@ -76,9 +76,16 @@ def _check_chave(env_var: str, *, obrigatoria: bool = True) -> CheckResult:
 
 def _check_lm_studio(url: Optional[str] = None, timeout_s: float = 5.0) -> CheckResult:
     import os
-    base = (url or os.environ.get("LM_STUDIO_URL") or "http://localhost:1234/v1").rstrip("/")
     try:
-        resp = requests.get(f"{base}/models", timeout=timeout_s)
+        base = validar_url_servico(
+            url or os.environ.get("LM_STUDIO_URL") or "http://localhost:1234/v1",
+            permitir_http_loopback=True,
+        )
+    except ValueError:
+        return CheckResult("lm_studio", False, "configuracao de URL invalida")
+    try:
+        resp = requests.get(f"{base}/models", timeout=timeout_s, allow_redirects=False)
+        exigir_resposta_sem_redirecionamento(resp)
         resp.raise_for_status()
         modelos = resp.json().get("data", [])
         chat = [m for m in modelos if "embed" not in m.get("id", "").lower()]
@@ -97,11 +104,11 @@ def _check_lm_studio(url: Optional[str] = None, timeout_s: float = 5.0) -> Check
             obrigatorio=True,
             detalhes={"url": base, "modelos": [m.get("id") for m in chat]},
         )
-    except requests.exceptions.RequestException as e:
+    except (requests.exceptions.RequestException, ValueError, RuntimeError, TypeError, AttributeError):
         return CheckResult(
             nome="lm_studio",
             ok=False,
-            mensagem=f"inacessivel ({e})",
+            mensagem="inacessivel ou resposta HTTP invalida",
             obrigatorio=True,
             detalhes={"url": base},
         )
@@ -150,7 +157,8 @@ def _check_sabesp_ping(timeout_s: float = 8.0) -> CheckResult:
     """Tenta pingar a API SABESP (nao bloqueia o pipeline em modo offline)."""
     url = "https://mananciais.sabesp.com.br/api/v4/dados/ultima-data"
     try:
-        resp = requests.get(url, timeout=timeout_s)
+        resp = requests.get(url, timeout=timeout_s, allow_redirects=False)
+        exigir_resposta_sem_redirecionamento(resp)
         resp.raise_for_status()
         data = resp.json()
         if data.get("succeeded"):
@@ -167,11 +175,11 @@ def _check_sabesp_ping(timeout_s: float = 8.0) -> CheckResult:
             mensagem="API respondeu sem 'succeeded=true'",
             obrigatorio=False,
         )
-    except requests.exceptions.RequestException as e:
+    except (requests.exceptions.RequestException, ValueError, RuntimeError, TypeError, AttributeError):
         return CheckResult(
             nome="sabesp_api",
             ok=False,
-            mensagem=f"offline ({e})",
+            mensagem="offline ou resposta HTTP invalida",
             obrigatorio=False,
         )
 
@@ -181,15 +189,19 @@ def _check_openweather_ping(api_key: Optional[str], timeout_s: float = 5.0) -> C
     if not api_key:
         return CheckResult("openweather_api", False, "sem chave OpenWeather", obrigatorio=False)
     # Sao Paulo (Praca da Se)
-    url = f"http://api.openweathermap.org/geo/1.0/reverse?lat=-23.5505&lon=-46.6333&limit=1&appid={api_key}"
+    url = "https://api.openweathermap.org/geo/1.0/reverse"
+    params = {"lat": -23.5505, "lon": -46.6333, "limit": 1, "appid": api_key}
     try:
-        resp = requests.get(url, timeout=timeout_s)
+        resp = requests.get(url, params=params, timeout=timeout_s, allow_redirects=False)
+        exigir_resposta_sem_redirecionamento(resp)
         if resp.status_code == 401:
             return CheckResult("openweather_api", False, "chave invalida (401)", obrigatorio=True)
         resp.raise_for_status()
         return CheckResult("openweather_api", True, "online e chave valida", obrigatorio=False)
-    except requests.exceptions.RequestException as e:
-        return CheckResult("openweather_api", False, f"erro de conexao ({e})", obrigatorio=False)
+    except (requests.exceptions.RequestException, RuntimeError):
+        return CheckResult(
+            "openweather_api", False, "erro de conexao ou resposta HTTP recusada", obrigatorio=False,
+        )
 
 
 def _check_gemini_modelo(
@@ -349,9 +361,9 @@ def executar_preflight(
             resultados.append(_check_openai_modelo(
                 EnvLoader.get("OPENAI_GPT5_API_KEY"), gpt_model, gpt_fb
             ))
-        except Exception as e:
+        except Exception:
             resultados.append(CheckResult(
-                "modelos_llm_sondagem", False, f"erro ao sondar: {e}", obrigatorio=False,
+                "modelos_llm_sondagem", False, "erro ao sondar modelos", obrigatorio=False,
             ))
 
     return resultados

@@ -24,6 +24,11 @@ from typing import Optional
 
 import requests
 
+from src.utils.http_security import (
+    exigir_resposta_sem_redirecionamento,
+    validar_url_servico,
+)
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "http://localhost:1234/v1"
@@ -33,7 +38,9 @@ _modelo_cache: Optional[str] = None
 
 
 def _base_url() -> str:
-    return os.environ.get("LM_STUDIO_URL", DEFAULT_BASE_URL).rstrip("/")
+    return validar_url_servico(
+        os.environ.get("LM_STUDIO_URL", DEFAULT_BASE_URL), permitir_http_loopback=True
+    )
 
 
 def _timeout_s() -> float:
@@ -47,7 +54,7 @@ def _timeout_s() -> float:
 def _native_chat_url() -> str:
     override = os.environ.get("LM_STUDIO_NATIVE_CHAT_URL")
     if override:
-        return override.rstrip("/")
+        return validar_url_servico(override, permitir_http_loopback=True)
     base = _base_url()
     root = base[:-3] if base.endswith("/v1") else base
     return f"{root}/api/v1/chat"
@@ -77,7 +84,8 @@ def _descobrir_modelo() -> str:
         return forcado
 
     try:
-        resp = requests.get(f"{_base_url()}/models", timeout=5)
+        resp = requests.get(f"{_base_url()}/models", timeout=5, allow_redirects=False)
+        exigir_resposta_sem_redirecionamento(resp)
         resp.raise_for_status()
         modelos = resp.json().get("data", [])
         # Filtrar embeddings — usamos apenas chat models
@@ -87,8 +95,12 @@ def _descobrir_modelo() -> str:
         _modelo_cache = chat[0]["id"]
         logger.info("[LM Studio] Modelo detectado: %s", _modelo_cache)
         return _modelo_cache
-    except requests.exceptions.ConnectionError as e:
-        raise ConnectionError(_msg_lm_studio_offline()) from e
+    except requests.exceptions.ConnectionError:
+        raise ConnectionError(_msg_lm_studio_offline()) from None
+    except requests.exceptions.RequestException:
+        raise RuntimeError("Falha HTTP ao consultar modelos do LM Studio.") from None
+    except (ValueError, TypeError, KeyError, AttributeError):
+        raise RuntimeError("Resposta de modelos do LM Studio invalida.") from None
 
 
 def _msg_lm_studio_offline() -> str:
@@ -98,7 +110,7 @@ def _msg_lm_studio_offline() -> str:
         "  1. O LM Studio está aberto\n"
         "  2. O servidor local está ativo (Developer → Local Server → Start)\n"
         "  3. Há um modelo de chat carregado\n"
-        f"  4. A URL {_base_url()} está acessível"
+        "  4. O endereco configurado em LM_STUDIO_URL está acessível"
     )
 
 
@@ -116,6 +128,9 @@ def ask_local_llm(
         temperature: Aleatoriedade da geração (0.0–1.0).
         model: Nome explícito; se None, descobre dinamicamente.
     """
+    # Valide ambos os destinos antes da descoberta ou do envio de qualquer prompt.
+    base = _base_url()
+    native_url = _native_chat_url()
     modelo = model or _descobrir_modelo()
     native_payload = {
         "model": modelo,
@@ -128,17 +143,19 @@ def ask_local_llm(
 
     try:
         response = requests.post(
-            _native_chat_url(),
+            native_url,
             json=native_payload,
             timeout=_timeout_s(),
+            allow_redirects=False,
         )
         # Modelos sem controle de raciocinio podem rejeitar esse campo.
         if response.status_code == 400:
             native_payload.pop("reasoning", None)
             response = requests.post(
-                _native_chat_url(),
+                native_url,
                 json=native_payload,
                 timeout=_timeout_s(),
+                allow_redirects=False,
             )
         # Compatibilidade com versoes antigas do LM Studio sem /api/v1/chat.
         if response.status_code == 404:
@@ -150,14 +167,17 @@ def ask_local_llm(
                 "stream": False,
             }
             response = requests.post(
-                f"{_base_url()}/chat/completions",
+                f"{base}/chat/completions",
                 json=legacy_payload,
                 timeout=_timeout_s(),
+                allow_redirects=False,
             )
+            exigir_resposta_sem_redirecionamento(response)
             response.raise_for_status()
             data = response.json()
             return data["choices"][0]["message"]["content"].strip()
 
+        exigir_resposta_sem_redirecionamento(response)
         response.raise_for_status()
         data = response.json()
         usados = int((data.get("stats") or {}).get("total_output_tokens") or 0)
@@ -175,14 +195,17 @@ def ask_local_llm(
             raise RuntimeError("LM Studio concluiu a geracao sem mensagem final.")
         return "\n\n".join(mensagens)
 
-    except requests.exceptions.ConnectionError as e:
-        raise ConnectionError(_msg_lm_studio_offline()) from e
-    except requests.exceptions.Timeout as e:
+    except requests.exceptions.ConnectionError:
+        raise ConnectionError(_msg_lm_studio_offline()) from None
+    except requests.exceptions.Timeout:
         raise RuntimeError(
             f"Timeout ({_timeout_s():g}s) ao gerar resposta. "
-            f"Modelo {modelo} pode ser muito grande para esse prompt — "
-            f"reduza max_tokens ou aumente LM_STUDIO_TIMEOUT."
-        ) from e
+            "Reduza max_tokens ou aumente LM_STUDIO_TIMEOUT."
+        ) from None
+    except requests.exceptions.RequestException:
+        raise RuntimeError("Falha HTTP ao gerar resposta no LM Studio.") from None
+    except (ValueError, TypeError, KeyError, AttributeError):
+        raise RuntimeError("Resposta de geracao do LM Studio invalida.") from None
 
 
 # Alias retrocompatível: o código histórico chama `ask_mistral` mas o cliente

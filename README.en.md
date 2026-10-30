@@ -160,6 +160,11 @@ presentation/    final presentation PDF
 Never commit `.env`, tokens, caches, raw data, weights or administrative
 documents. See [SECURITY.md](SECURITY.md).
 
+Provider keys authenticate outgoing requests; this CLI does not issue user
+sessions. OpenWeather requires HTTPS, and LM Studio accepts HTTP only on
+loopback. Remote endpoints require HTTPS. The security document explains
+credential flow, rotation and the limits of diagnostic redaction.
+
 Copyright © 2026 José Enoque Fernandes de Sousa. The content is available for
 reading and academic assessment; no reuse rights are granted without express
 permission. See [LICENSE](LICENSE).

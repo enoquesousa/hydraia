@@ -131,4 +131,9 @@ presentation/    apresentação final em PDF
 
 Nunca versione `.env`, tokens, caches, dados brutos, pesos ou entregas administrativas. O arquivo local `.env` está excluído pelo `.gitignore`. Consulte [SECURITY.md](SECURITY.md).
 
+As chaves autenticam chamadas de saída aos provedores; o CLI não possui sessões
+de usuário. O OpenWeather usa HTTPS e o LM Studio aceita HTTP somente em loopback;
+destinos remotos exigem HTTPS. Veja o [fluxo de credenciais, rotação e limites dos
+diagnósticos](SECURITY.md#componentes-credenciais-e-fluxo).
+
 Copyright © 2026 José Enoque Fernandes de Sousa. O conteúdo é disponibilizado para leitura e avaliação acadêmica; nenhum direito de reutilização é concedido sem autorização expressa. Consulte [LICENSE](LICENSE).

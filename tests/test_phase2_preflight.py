@@ -60,10 +60,14 @@ class TestPhase2Preflight(unittest.TestCase):
     @patch("src.core.preflight._check_chave")
     @patch("src.core.preflight._check_modelo_lstm")
     @patch("src.core.preflight._check_contexto_md")
-    def test_executar_preflight_flow(self, mock_ctx, mock_lstm, mock_chave):
+    @patch("src.core.preflight._check_lm_studio")
+    @patch("src.core.preflight._check_sabesp_ping")
+    def test_executar_preflight_flow(self, mock_sabesp, mock_lm, mock_ctx, mock_lstm, mock_chave):
         mock_chave.return_value = CheckResult("chave", True)
         mock_lstm.return_value = CheckResult("lstm", True)
         mock_ctx.return_value = CheckResult("ctx", True)
+        mock_lm.return_value = CheckResult("lm_studio", True)
+        mock_sabesp.return_value = CheckResult("sabesp_api", True)
 
         with patch("src.core.preflight._check_openweather_ping") as mock_ow:
             mock_ow.return_value = CheckResult("ow", True)

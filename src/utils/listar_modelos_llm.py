@@ -9,12 +9,12 @@ Uso:
 """
 
 import sys
-import json
 from typing import List, Dict, Any
 
 import requests
 
 from src.utils.env_loader import EnvLoader
+from src.utils.http_security import exigir_resposta_sem_redirecionamento
 
 
 def listar_modelos_openai() -> List[Dict[str, Any]]:
@@ -32,22 +32,17 @@ def listar_modelos_openai() -> List[Dict[str, Any]]:
     headers = {"Authorization": f"Bearer {api_key}"}
 
     try:
-        resp = requests.get(url, headers=headers, timeout=15)
+        resp = requests.get(url, headers=headers, timeout=15, allow_redirects=False)
+        exigir_resposta_sem_redirecionamento(resp)
         resp.raise_for_status()
-    except Exception as e:
-        print(f"[OpenAI] Erro ao listar modelos: {e}")
-        try:
-            print("Resposta:", resp.text)
-        except Exception:
-            pass
+        data = resp.json()
+        modelos = data.get("data", [])
+        # Ordenar por id para uma saída mais estável.
+        modelos.sort(key=lambda m: m.get("id", ""))
+        return modelos
+    except Exception:
+        print("[OpenAI] Erro ao listar modelos: falha HTTP ou resposta invalida")
         return []
-
-    data = resp.json()
-    modelos = data.get("data", [])
-
-    # Ordenar por id para uma saída mais estável
-    modelos.sort(key=lambda m: m.get("id", ""))
-    return modelos
 
 
 def listar_modelos_gemini() -> List[Dict[str, Any]]:
@@ -63,22 +58,17 @@ def listar_modelos_gemini() -> List[Dict[str, Any]]:
     params = {"key": api_key}
 
     try:
-        resp = requests.get(url, params=params, timeout=15)
+        resp = requests.get(url, params=params, timeout=15, allow_redirects=False)
+        exigir_resposta_sem_redirecionamento(resp)
         resp.raise_for_status()
-    except Exception as e:
-        print(f"[Gemini] Erro ao listar modelos: {e}")
-        try:
-            print("Resposta:", resp.text)
-        except Exception:
-            pass
+        data = resp.json()
+        modelos = data.get("models", [])
+        # Ordenar por name.
+        modelos.sort(key=lambda m: m.get("name", ""))
+        return modelos
+    except Exception:
+        print("[Gemini] Erro ao listar modelos: falha HTTP ou resposta invalida")
         return []
-
-    data = resp.json()
-    modelos = data.get("models", [])
-
-    # Ordenar por name
-    modelos.sort(key=lambda m: m.get("name", ""))
-    return modelos
 
 
 def main() -> None:
